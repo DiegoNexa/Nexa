@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ClienteForm } from "@/components/clientes/cliente-form";
+import { DeleteClienteButton } from "@/components/clientes/delete-cliente-button";
 import { atualizarCliente } from "../actions";
 
 type Props = {
@@ -21,20 +22,36 @@ export default async function EditarClientePage({ params }: Props) {
   const { id } = await params;
 
   const supabase = await createClient();
-  const { data: cliente } = await supabase
-    .from("clientes")
-    .select("id, nome, telefone, email, data_nascimento, observacoes, ultima_visita, created_at")
-    .eq("id", id)
-    .single<{
-      id:              string;
-      nome:            string;
-      telefone:        string | null;
-      email:           string | null;
-      data_nascimento: string | null;
-      observacoes:     string | null;
-      ultima_visita:   string | null;
-      created_at:      string;
-    }>();
+
+  // Busca cliente + estatísticas em paralelo
+  const [{ data: cliente }, { count: totalAtendimentos }, { count: agendamentosFuturos }] =
+    await Promise.all([
+      supabase
+        .from("clientes")
+        .select("id, nome, telefone, email, data_nascimento, observacoes, ultima_visita, created_at")
+        .eq("id", id)
+        .single<{
+          id:              string;
+          nome:            string;
+          telefone:        string | null;
+          email:           string | null;
+          data_nascimento: string | null;
+          observacoes:     string | null;
+          ultima_visita:   string | null;
+          created_at:      string;
+        }>(),
+      supabase
+        .from("agendamentos")
+        .select("id", { count: "exact", head: true })
+        .eq("cliente_id", id)
+        .eq("status", "concluido"),
+      supabase
+        .from("agendamentos")
+        .select("id", { count: "exact", head: true })
+        .eq("cliente_id", id)
+        .in("status", ["agendado", "confirmado"])
+        .gte("data_hora_inicio", new Date().toISOString()),
+    ]);
 
   if (!cliente) notFound();
 
@@ -42,6 +59,7 @@ export default async function EditarClientePage({ params }: Props) {
 
   return (
     <div className="px-4 md:px-8 py-8 md:py-12 max-w-2xl mx-auto">
+      {/* Cabeçalho */}
       <div className="mb-6">
         <a
           href="/clientes"
@@ -67,22 +85,23 @@ export default async function EditarClientePage({ params }: Props) {
         </p>
       </div>
 
-      {/* Histórico resumido */}
-      <div className="glass-card rounded-2xl p-4 md:p-5 mb-6 flex items-center gap-4">
-        <div
-          className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
-          style={{ background: "rgba(200,153,51,0.12)" }}
-        >
-          <span className="material-symbols-outlined text-primary" style={{ fontSize: "20px" }}>
-            event_repeat
-          </span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs uppercase tracking-wider text-outline mb-0.5">Última visita</p>
-          <p className="text-sm font-semibold text-on-surface">
-            {formatarData(cliente.ultima_visita)}
-          </p>
-        </div>
+      {/* Estatísticas: 3 cards lado a lado */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <StatCard
+          icon="event_repeat"
+          label="Última visita"
+          value={formatarData(cliente.ultima_visita)}
+        />
+        <StatCard
+          icon="check_circle"
+          label="Atendimentos"
+          value={(totalAtendimentos ?? 0).toString()}
+        />
+        <StatCard
+          icon="upcoming"
+          label="Agendados"
+          value={(agendamentosFuturos ?? 0).toString()}
+        />
       </div>
 
       <ClienteForm
@@ -97,6 +116,26 @@ export default async function EditarClientePage({ params }: Props) {
         submitLabel="Salvar alterações"
         pendingLabel="Salvando..."
       />
+
+      {/* Zona de risco — exclusão definitiva */}
+      <DeleteClienteButton id={cliente.id} nome={cliente.nome} />
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value }: { icon: string; label: string; value: string }) {
+  return (
+    <div className="glass-card rounded-2xl p-3 md:p-4 text-center">
+      <span
+        className="material-symbols-outlined text-primary block mx-auto mb-1"
+        style={{ fontSize: "22px" }}
+      >
+        {icon}
+      </span>
+      <p className="text-[10px] uppercase tracking-wider text-outline mb-0.5">{label}</p>
+      <p className="text-xs md:text-sm font-semibold text-on-surface leading-tight break-words">
+        {value}
+      </p>
     </div>
   );
 }

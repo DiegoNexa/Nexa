@@ -175,3 +175,49 @@ export async function alternarAtivoCliente(id: string, ativoAtual: boolean): Pro
   await supabase.from("clientes").update({ ativo: !ativoAtual }).eq("id", id);
   revalidatePath("/clientes");
 }
+
+export type DeleteState = {
+  ok:       boolean;
+  message?: string;
+};
+
+/**
+ * Exclusão definitiva (hard delete).
+ *
+ * Primeiro checa se há agendamentos vinculados — se sim, retorna
+ * mensagem amigável sugerindo desativar em vez. A FK em
+ * `agendamentos.cliente_id` é ON DELETE RESTRICT, então o DELETE
+ * falharia silenciosamente sem essa checagem antecipada.
+ */
+export async function excluirCliente(
+  id: string,
+  _prev: DeleteState,
+): Promise<DeleteState> {
+  const supabase = await createClient();
+
+  const { count, error: countErr } = await supabase
+    .from("agendamentos")
+    .select("id", { count: "exact", head: true })
+    .eq("cliente_id", id);
+
+  if (countErr) {
+    return { ok: false, message: `Erro ao verificar agendamentos: ${countErr.message}` };
+  }
+
+  if ((count ?? 0) > 0) {
+    return {
+      ok: false,
+      message:
+        `Este cliente tem ${count} agendamento(s) vinculado(s) ao histórico. ` +
+        "Use 'desativar' em vez de 'excluir' para manter o registro.",
+    };
+  }
+
+  const { error } = await supabase.from("clientes").delete().eq("id", id);
+  if (error) {
+    return { ok: false, message: `Falha ao excluir: ${error.message}` };
+  }
+
+  revalidatePath("/clientes");
+  redirect("/clientes");
+}
