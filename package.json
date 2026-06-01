@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "save": "git add -A && git commit -m \"wip: progresso $(node -e \"console.log(new Date().toISOString().replace('T',' ').slice(0,16))\")\" && git push"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
