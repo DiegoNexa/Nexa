@@ -21,7 +21,7 @@ type SidebarProps = {
 const NAV: NavItem[] = [
   { href: "/dashboard",      label: "Dashboard",     icon: "dashboard",        enabled: true  },
   { href: "/agenda",         label: "Agenda",        icon: "calendar_today",   enabled: true  },
-  { href: "/clientes",       label: "Clientes",      icon: "groups",           enabled: false },
+  { href: "/clientes",       label: "Clientes",      icon: "groups",           enabled: true  },
   { href: "/profissionais",  label: "Profissionais", icon: "content_cut",      enabled: false },
   { href: "/servicos",       label: "Serviços",      icon: "design_services",  enabled: true  },
   { href: "/estoque",        label: "Estoque",       icon: "inventory_2",      enabled: false },

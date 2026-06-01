@@ -220,6 +220,7 @@ erDiagram
         date data_nascimento
         text observacoes
         timestamp ultima_visita
+        boolean ativo
         timestamp created_at
     }
 
