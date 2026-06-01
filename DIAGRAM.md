@@ -195,8 +195,10 @@ erDiagram
     profissionais {
         uuid id PK
         uuid salao_id FK
+        uuid usuario_id FK
         string nome
         string telefone
+        string cor
         boolean ativo
         timestamp created_at
     }
@@ -214,7 +216,9 @@ erDiagram
         uuid salao_id FK
         string nome
         string telefone
+        string email
         date data_nascimento
+        text observacoes
         timestamp ultima_visita
         timestamp created_at
     }
@@ -223,9 +227,11 @@ erDiagram
         uuid id PK
         uuid salao_id FK
         string nome
+        text descricao
         int duracao_minutos
         decimal preco
         boolean ativo
+        timestamp created_at
     }
 
     comissoes_config {
@@ -241,9 +247,12 @@ erDiagram
         uuid cliente_id FK
         uuid profissional_id FK
         uuid servico_id FK
-        timestamp data_hora
+        timestamp data_hora_inicio
+        timestamp data_hora_fim
         string status
         string origem
+        text observacoes
+        uuid created_by FK
         timestamp created_at
     }
 

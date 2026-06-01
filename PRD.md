@@ -92,7 +92,7 @@ a operação.
 
 
 
-\## 4. Os 5 Pilares do Nexa
+\## 4. Os 5 Pilares da Nexa
 
 
 
