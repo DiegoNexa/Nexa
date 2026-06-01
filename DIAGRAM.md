@@ -199,6 +199,7 @@ erDiagram
         string nome
         string telefone
         string cor
+        decimal comissao_padrao
         boolean ativo
         timestamp created_at
     }

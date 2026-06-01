@@ -66,6 +66,11 @@ git push
 
 ## 📋 Outras pendências pré-deploy
 
+### ⏳ Aplicar migration 009 no Supabase (mais recente)
+Comissão padrão por profissional + tabela `comissoes_config` (overrides por serviço).
+Conteúdo em [`supabase/migrations/009_profissionais_comissoes.sql`](supabase/migrations/009_profissionais_comissoes.sql).
+SQL Editor → cole → Run.
+
 ### 🚨 Aplicar migration 007 no Supabase (URGENTE — bug crítico)
 **Conserta recursão infinita** nas policies de RLS — sem isso, qualquer operação em qualquer tabela falha com `infinite recursion detected in policy`. O dashboard também estava silenciosamente quebrado (mostrava "Salão" genérico).
 
