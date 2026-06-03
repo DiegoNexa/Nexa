@@ -241,6 +241,7 @@ erDiagram
         uuid profissional_id FK
         uuid servico_id FK
         decimal percentual
+        boolean atende
     }
 
     agendamentos {

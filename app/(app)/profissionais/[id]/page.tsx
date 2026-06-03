@@ -32,7 +32,8 @@ type Servico = {
 
 type ComissaoOverride = {
   servico_id: string;
-  percentual: number;
+  percentual: number | null;
+  atende:     boolean;
 };
 
 export default async function EditarProfissionalPage({ params }: Props) {
@@ -60,7 +61,7 @@ export default async function EditarProfissionalPage({ params }: Props) {
       .returns<Carga[]>(),
     supabase
       .from("comissoes_config")
-      .select("servico_id, percentual")
+      .select("servico_id, percentual, atende")
       .eq("profissional_id", id)
       .returns<ComissaoOverride[]>(),
     supabase
@@ -80,10 +81,15 @@ export default async function EditarProfissionalPage({ params }: Props) {
 
   const updateAction = atualizarProfissional.bind(null, profissional.id);
 
-  // Mapa de overrides pra passar pro form
+  // Divide as comissões em "overrides com %" e "não atende"
   const overridesMap: Record<string, number> = {};
+  const naoAtendeSet = new Set<string>();
   for (const c of comissoes ?? []) {
-    overridesMap[c.servico_id] = c.percentual;
+    if (!c.atende) {
+      naoAtendeSet.add(c.servico_id);
+    } else if (c.percentual !== null) {
+      overridesMap[c.servico_id] = c.percentual;
+    }
   }
 
   return (
@@ -159,6 +165,7 @@ export default async function EditarProfissionalPage({ params }: Props) {
           servicos={servicos ?? []}
           comissaoPadrao={profissional.comissao_padrao}
           overrides={overridesMap}
+          naoAtende={naoAtendeSet}
         />
       </Section>
 

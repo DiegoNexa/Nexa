@@ -286,16 +286,35 @@ export async function salvarComissoes(
 ): Promise<ComissoesState> {
   const supabase = await createClient();
 
+  // Busca quais serviços estão marcados como "não atende"
+  // pra ignorar os inputs deles (não confundir vazio = padrão com não atende)
+  const { data: bloqueados } = await supabase
+    .from("comissoes_config")
+    .select("servico_id")
+    .eq("profissional_id", profissionalId)
+    .eq("atende", false);
+
+  const idsBloqueados = new Set((bloqueados ?? []).map((b) => b.servico_id));
+
   // Lê todas as entradas no formato `comissao_<servico_id>`
   // Vazio = remove override (volta a usar padrão)
   // Valor numérico válido = upsert do override
-  const upserts: Array<{ profissional_id: string; servico_id: string; percentual: number }> = [];
+  const upserts: Array<{
+    profissional_id: string;
+    servico_id:      string;
+    percentual:      number;
+    atende:          boolean;
+  }> = [];
   const deletes: string[] = [];
 
   for (const [key, value] of formData.entries()) {
     if (!key.startsWith("comissao_")) continue;
     const servicoId = key.slice("comissao_".length);
-    const valStr    = typeof value === "string" ? value.replace(",", ".").trim() : "";
+
+    // Ignora serviços bloqueados (atende=false) — preserva o estado deles
+    if (idsBloqueados.has(servicoId)) continue;
+
+    const valStr = typeof value === "string" ? value.replace(",", ".").trim() : "";
 
     if (valStr === "") {
       deletes.push(servicoId);
@@ -307,15 +326,21 @@ export async function salvarComissoes(
       return { ok: false, message: `Comissão inválida para serviço (use 0-100): ${valStr}` };
     }
 
-    upserts.push({ profissional_id: profissionalId, servico_id: servicoId, percentual: num });
+    upserts.push({
+      profissional_id: profissionalId,
+      servico_id:      servicoId,
+      percentual:      num,
+      atende:          true,
+    });
   }
 
-  // Remove os zerados/vazios
+  // Remove só os que viraram vazios — bloqueados continuam intocados
   if (deletes.length > 0) {
     const { error: delErr } = await supabase
       .from("comissoes_config")
       .delete()
       .eq("profissional_id", profissionalId)
+      .eq("atende", true)
       .in("servico_id", deletes);
 
     if (delErr) return { ok: false, message: `Erro ao limpar: ${delErr.message}` };
@@ -332,4 +357,38 @@ export async function salvarComissoes(
 
   revalidatePath(`/profissionais/${profissionalId}`);
   return { ok: true, message: "Comissões salvas." };
+}
+
+/**
+ * Marca um serviço como "não atendido" pelo profissional.
+ * Upsert com atende=false, percentual=null.
+ */
+export async function marcarNaoAtende(profissionalId: string, servicoId: string): Promise<void> {
+  const supabase = await createClient();
+  await supabase
+    .from("comissoes_config")
+    .upsert(
+      {
+        profissional_id: profissionalId,
+        servico_id:      servicoId,
+        atende:          false,
+        percentual:      null,
+      },
+      { onConflict: "profissional_id,servico_id" },
+    );
+  revalidatePath(`/profissionais/${profissionalId}`);
+}
+
+/**
+ * Volta a marcar serviço como atendido (atende=true sem override —
+ * volta a usar a comissão padrão do profissional).
+ */
+export async function voltarAtender(profissionalId: string, servicoId: string): Promise<void> {
+  const supabase = await createClient();
+  await supabase
+    .from("comissoes_config")
+    .delete()
+    .eq("profissional_id", profissionalId)
+    .eq("servico_id", servicoId);
+  revalidatePath(`/profissionais/${profissionalId}`);
 }
