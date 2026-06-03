@@ -34,7 +34,8 @@ export function MovimentoForm({ profissionalId }: Props) {
       <form action={formAction} className="px-5 pb-5 pt-1 border-t space-y-3" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
         <input type="hidden" name="profissional_id" value={profissionalId} />
 
-        {/* Tipo — radio cards */}
+        {/* Tipo — radio cards com feedback visual claro
+            (border 2px dourada + glow quando checked) */}
         <div>
           <label className="block text-sm font-medium text-on-surface mb-2 mt-3">Tipo</label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -54,11 +55,17 @@ export function MovimentoForm({ profissionalId }: Props) {
                   className="peer sr-only"
                 />
                 <div
-                  className="rounded-xl p-3 text-center transition-all-custom peer-checked:border-primary peer-checked:bg-primary-container/20"
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                  }}
+                  className="
+                    movimento-tipo-card
+                    rounded-xl p-3 text-center
+                    transition-all duration-200
+                    bg-white/[0.04]
+                    border-2 border-white/10
+                    hover:border-white/25
+                    peer-checked:!border-primary
+                    peer-checked:bg-[rgba(200,153,51,0.12)]
+                    peer-checked:shadow-[0_0_20px_rgba(200,153,51,0.25)]
+                  "
                 >
                   <span
                     className="material-symbols-outlined block mb-1"

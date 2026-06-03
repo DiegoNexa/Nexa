@@ -16,6 +16,7 @@ type Profissional = {
   telefone:        string | null;
   cor:             string | null;
   comissao_padrao: number;
+  salario_fixo:    number;
 };
 
 type Carga = {
@@ -51,7 +52,7 @@ export default async function EditarProfissionalPage({ params }: Props) {
   ] = await Promise.all([
     supabase
       .from("profissionais")
-      .select("id, nome, telefone, cor, comissao_padrao")
+      .select("id, nome, telefone, cor, comissao_padrao, salario_fixo")
       .eq("id", id)
       .single<Profissional>(),
     supabase
@@ -144,6 +145,7 @@ export default async function EditarProfissionalPage({ params }: Props) {
             telefone:        profissional.telefone,
             cor:             profissional.cor,
             comissao_padrao: profissional.comissao_padrao,
+            salario_fixo:    profissional.salario_fixo,
           }}
           submitLabel="Salvar dados"
           pendingLabel="Salvando..."

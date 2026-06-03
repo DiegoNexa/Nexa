@@ -21,12 +21,18 @@ const percentual = z.preprocess(
   z.coerce.number().min(0, "Mínimo 0%").max(100, "Máximo 100%"),
 );
 
+const valorMonetario = z.preprocess(
+  (v) => (typeof v === "string" ? v.replace(",", ".").trim() : v),
+  z.coerce.number().min(0, "Não pode ser negativo").max(999999.99, "Valor muito alto"),
+);
+
 // ─── Form básico do profissional ──────────────────────────────
 const profissionalSchema = z.object({
   nome:            z.string().trim().min(2, "Nome muito curto").max(100, "Nome muito longo"),
   telefone:        optionalTelefone,
   cor:             corHex,
   comissao_padrao: percentual,
+  salario_fixo:    valorMonetario,
 });
 
 export type ProfissionalState = {
@@ -38,6 +44,7 @@ export type ProfissionalState = {
     telefone?:        string;
     cor?:             string;
     comissao_padrao?: string;
+    salario_fixo?:    string;
   };
 };
 
@@ -47,6 +54,7 @@ function parseProfissional(formData: FormData) {
     telefone:        formData.get("telefone"),
     cor:             formData.get("cor"),
     comissao_padrao: formData.get("comissao_padrao"),
+    salario_fixo:    formData.get("salario_fixo") ?? "0",
   };
 
   const preservedValues: ProfissionalState["values"] = {
@@ -54,6 +62,7 @@ function parseProfissional(formData: FormData) {
     telefone:        typeof raw.telefone        === "string" ? raw.telefone        : "",
     cor:             typeof raw.cor             === "string" ? raw.cor             : "",
     comissao_padrao: typeof raw.comissao_padrao === "string" ? raw.comissao_padrao : "",
+    salario_fixo:    typeof raw.salario_fixo    === "string" ? raw.salario_fixo    : "",
   };
 
   const parsed = profissionalSchema.safeParse(raw);
@@ -111,6 +120,7 @@ export async function criarProfissional(
       telefone:        parsed.data.telefone ?? null,
       cor:             parsed.data.cor ?? null,
       comissao_padrao: parsed.data.comissao_padrao,
+      salario_fixo:    parsed.data.salario_fixo,
     })
     .select("id")
     .single();
@@ -148,6 +158,7 @@ export async function atualizarProfissional(
       telefone:        parsed.data.telefone ?? null,
       cor:             parsed.data.cor ?? null,
       comissao_padrao: parsed.data.comissao_padrao,
+      salario_fixo:    parsed.data.salario_fixo,
     })
     .eq("id", id);
 

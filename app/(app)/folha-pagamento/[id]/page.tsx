@@ -72,31 +72,50 @@ export default async function FolhaProfissionalPage({ params, searchParams }: Pr
         </div>
       </div>
 
-      {/* Cards de resumo */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      {/* Cards de resumo — primeira linha: Salário + Movimentos adicionais + Líquido */}
+      <div className="grid grid-cols-3 gap-3 mb-3">
         <ResumoCard
-          icon="payments"
-          label="Comissão bruta"
-          value={BRL.format(totais.comissao_bruta)}
+          icon="paid"
+          label="Salário fixo"
+          value={BRL.format(totais.salario_fixo)}
         />
         <ResumoCard
-          icon="remove_circle"
-          label="Descontos"
-          value={BRL.format(totais.descontos)}
-          color={totais.descontos > 0 ? "var(--color-error)" : undefined}
-        />
-        <ResumoCard
-          icon="star"
-          label="Bônus"
-          value={BRL.format(totais.bonus)}
-          color={totais.bonus > 0 ? "var(--color-primary)" : undefined}
+          icon="trending_up"
+          label="Movimentos adicionais"
+          value={BRL.format(totais.movimentos_adicionais)}
+          color={totais.movimentos_adicionais < 0 ? "var(--color-error)" : undefined}
         />
         <ResumoCard
           icon="account_balance_wallet"
-          label="Líquido"
+          label="Líquido total"
           value={BRL.format(totais.liquido)}
           highlight
         />
+      </div>
+
+      {/* Breakdown dos movimentos adicionais */}
+      <div className="glass-card rounded-2xl p-4 mb-6">
+        <p className="text-[10px] uppercase tracking-wider text-outline mb-2">
+          Composição dos movimentos adicionais
+        </p>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-outline">Comissão bruta</p>
+            <p className="text-sm font-semibold text-on-surface">{BRL.format(totais.comissao_bruta)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-outline">− Descontos</p>
+            <p className="text-sm font-semibold" style={{ color: totais.descontos > 0 ? "var(--color-error)" : "var(--color-on-surface)" }}>
+              {BRL.format(totais.descontos)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-outline">+ Bônus</p>
+            <p className="text-sm font-semibold" style={{ color: totais.bonus > 0 ? "var(--color-primary)" : "var(--color-on-surface)" }}>
+              {BRL.format(totais.bonus)}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Atendimentos */}

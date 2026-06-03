@@ -66,7 +66,12 @@ git push
 
 ## 📋 Outras pendências pré-deploy
 
-### ⏳ Aplicar migration 011 no Supabase (mais recente)
+### ⏳ Aplicar migration 012 no Supabase (mais recente)
+Adiciona `salario_fixo` em `profissionais` para salões com salário base + comissão.
+Conteúdo em [`supabase/migrations/012_salario_fixo.sql`](supabase/migrations/012_salario_fixo.sql).
+SQL Editor → cole → Run.
+
+### ⏳ Aplicar migration 011 no Supabase
 Adiciona coluna `atende` em `comissoes_config` (perm. ao profissional não realizar certos serviços).
 Conteúdo em [`supabase/migrations/011_comissoes_atende.sql`](supabase/migrations/011_comissoes_atende.sql).
 SQL Editor → cole → Run.

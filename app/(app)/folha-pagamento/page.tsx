@@ -7,6 +7,7 @@ type Profissional = {
   nome:            string;
   cor:             string | null;
   comissao_padrao: number;
+  salario_fixo:    number;
   ativo:           boolean;
 };
 
@@ -21,7 +22,7 @@ export default async function FolhaPagamentoPage({ searchParams }: Props) {
   const supabase = await createClient();
   const { data: profissionais } = await supabase
     .from("profissionais")
-    .select("id, nome, cor, comissao_padrao, ativo")
+    .select("id, nome, cor, comissao_padrao, salario_fixo, ativo")
     .eq("ativo", true)
     .order("nome")
     .returns<Profissional[]>();
@@ -69,9 +70,9 @@ export default async function FolhaPagamentoPage({ searchParams }: Props) {
               style={{ borderColor: "rgba(255,255,255,0.06)" }}
             >
               <div>Profissional</div>
-              <div className="text-right">Comissão</div>
-              <div className="text-right">Descontos</div>
-              <div className="text-right">Bônus</div>
+              <div className="text-right">Salário</div>
+              <div className="text-right">Movimentos</div>
+              <div className="text-right" />
               <div className="text-right">Líquido</div>
               <div className="w-20" />
             </div>
@@ -171,14 +172,17 @@ function LinhaProfissional({
 
       {/* Colunas desktop */}
       <div className="hidden md:block text-right text-sm text-on-surface-variant">
-        {BRL.format(totais.comissao_bruta)}
+        {totais.salario_fixo > 0 ? BRL.format(totais.salario_fixo) : "—"}
       </div>
-      <div className="hidden md:block text-right text-sm" style={{ color: totais.descontos > 0 ? "var(--color-error)" : "var(--color-on-surface-variant)" }}>
-        {totais.descontos > 0 ? `− ${BRL.format(totais.descontos)}` : "—"}
+      <div className="hidden md:block text-right text-sm">
+        <p className="text-on-surface-variant">{BRL.format(totais.movimentos_adicionais)}</p>
+        <p className="text-[10px] text-outline">
+          {BRL.format(totais.comissao_bruta)} comissão
+          {totais.descontos > 0 && ` − ${BRL.format(totais.descontos)}`}
+          {totais.bonus > 0 && ` + ${BRL.format(totais.bonus)}`}
+        </p>
       </div>
-      <div className="hidden md:block text-right text-sm" style={{ color: totais.bonus > 0 ? "var(--color-primary)" : "var(--color-on-surface-variant)" }}>
-        {totais.bonus > 0 ? `+ ${BRL.format(totais.bonus)}` : "—"}
-      </div>
+      <div className="hidden md:block" />
       <div className="hidden md:block text-right">
         <p className="text-sm font-bold text-primary">{BRL.format(totais.liquido)}</p>
       </div>

@@ -147,10 +147,18 @@ export function FolhaPdfEmpregador({ nomeSalao, folha }: Props) {
             <Text>(+) Bônus</Text>
             <Text style={[s.bold, s.success]}>+ {BRL.format(totais.bonus)}</Text>
           </View>
+          <View style={[s.rowBetween, { marginTop: 6, paddingTop: 6, borderTop: `1 solid ${COLORS.border}` }]}>
+            <Text style={s.bold}>= Movimentos adicionais</Text>
+            <Text style={s.bold}>{BRL.format(totais.movimentos_adicionais)}</Text>
+          </View>
+          <View style={[s.rowBetween, { marginTop: 4 }]}>
+            <Text>(+) Salário fixo do mês</Text>
+            <Text style={s.bold}>{BRL.format(totais.salario_fixo)}</Text>
+          </View>
         </View>
 
         <View style={s.resumoBox}>
-          <Text style={s.resumoLabel}>Total líquido a pagar</Text>
+          <Text style={s.resumoLabel}>Total líquido a pagar (salário + adicionais)</Text>
           <Text style={s.resumoValor}>{BRL.format(totais.liquido)}</Text>
         </View>
 

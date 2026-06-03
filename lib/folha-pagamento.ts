@@ -38,6 +38,7 @@ export type FolhaResumo = {
     nome:            string;
     cor:             string | null;
     comissao_padrao: number;
+    salario_fixo:    number;
   };
   periodo: {
     inicio: string;        // ISO date YYYY-MM-DD
@@ -47,10 +48,12 @@ export type FolhaResumo = {
   atendimentos:      AtendimentoFolha[];
   movimentos:        Movimento[];
   totais: {
-    comissao_bruta:  number;  // soma de atendimentos
-    descontos:       number;  // vales + adiantamentos + descontos
-    bonus:           number;
-    liquido:         number;  // bruta - descontos + bonus
+    salario_fixo:           number;  // mensalidade fixa do profissional
+    comissao_bruta:         number;  // soma de atendimentos
+    descontos:              number;  // vales + adiantamentos + descontos
+    bonus:                  number;
+    movimentos_adicionais:  number;  // comissao - descontos + bonus
+    liquido:                number;  // salario + movimentos_adicionais
   };
 };
 
@@ -93,9 +96,15 @@ export async function carregarFolha(
   // 1. Profissional
   const { data: prof } = await supabase
     .from("profissionais")
-    .select("id, nome, cor, comissao_padrao")
+    .select("id, nome, cor, comissao_padrao, salario_fixo")
     .eq("id", profissionalId)
-    .single<{ id: string; nome: string; cor: string | null; comissao_padrao: number }>();
+    .single<{
+      id:              string;
+      nome:            string;
+      cor:             string | null;
+      comissao_padrao: number;
+      salario_fixo:    number;
+    }>();
 
   if (!prof) return null;
 
@@ -169,6 +178,8 @@ export async function carregarFolha(
   const movimentos = movs ?? [];
 
   // 6. Totais
+  const salario_fixo = Number(prof.salario_fixo);
+
   const comissao_bruta = atendimentos.reduce((s, a) => s + a.comissao_valor, 0);
 
   const descontos = movimentos
@@ -179,7 +190,11 @@ export async function carregarFolha(
     .filter((m) => m.tipo === "bonus")
     .reduce((s, m) => s + Number(m.valor), 0);
 
-  const liquido = comissao_bruta - descontos + bonus;
+  // "Movimentos adicionais" agrupa tudo que NÃO é salário fixo —
+  // comissão dos atendimentos + bônus - descontos.
+  // Líquido final = salário + movimentos adicionais
+  const movimentos_adicionais = comissao_bruta - descontos + bonus;
+  const liquido = salario_fixo + movimentos_adicionais;
 
   return {
     profissional: {
@@ -187,14 +202,17 @@ export async function carregarFolha(
       nome:            prof.nome,
       cor:             prof.cor,
       comissao_padrao: prof.comissao_padrao,
+      salario_fixo,
     },
     periodo,
     atendimentos,
     movimentos,
     totais: {
+      salario_fixo,
       comissao_bruta,
       descontos,
       bonus,
+      movimentos_adicionais,
       liquido,
     },
   };

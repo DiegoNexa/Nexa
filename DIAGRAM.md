@@ -200,6 +200,7 @@ erDiagram
         string telefone
         string cor
         decimal comissao_padrao
+        decimal salario_fixo
         boolean ativo
         timestamp created_at
     }

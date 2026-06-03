@@ -101,6 +101,17 @@ export function FolhaPdfFuncionario({ nomeSalao, folha }: Props) {
           </>
         )}
 
+        {/* Composição final: salário + adicionais */}
+        <Text style={s.sectionTitle}>Composição do pagamento</Text>
+        <View style={s.rowBetween}>
+          <Text>Salário fixo do mês</Text>
+          <Text style={s.bold}>{BRL.format(totais.salario_fixo)}</Text>
+        </View>
+        <View style={s.rowBetween}>
+          <Text>+ Movimentos adicionais (comissão + bônus − descontos)</Text>
+          <Text style={s.bold}>{BRL.format(totais.movimentos_adicionais)}</Text>
+        </View>
+
         {/* Resumo do líquido */}
         <View style={s.resumoBox}>
           <Text style={s.resumoLabel}>Total líquido a receber</Text>
