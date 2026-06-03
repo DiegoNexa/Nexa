@@ -284,6 +284,17 @@ erDiagram
         timestamp created_at
     }
 
+    movimentos_folha {
+        uuid id PK
+        uuid profissional_id FK
+        string tipo
+        decimal valor
+        text descricao
+        date data_movimento
+        uuid created_by FK
+        timestamp created_at
+    }
+
     saloes ||--o{ usuarios : ""
     saloes ||--o{ profissionais : ""
     saloes ||--o{ clientes : ""

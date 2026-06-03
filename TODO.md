@@ -66,7 +66,12 @@ git push
 
 ## 📋 Outras pendências pré-deploy
 
-### ⏳ Aplicar migration 009 no Supabase (mais recente)
+### ⏳ Aplicar migration 010 no Supabase (mais recente)
+Cria tabela `movimentos_folha` (vales, adiantamentos, descontos, bônus) com RLS.
+Conteúdo em [`supabase/migrations/010_movimentos_folha.sql`](supabase/migrations/010_movimentos_folha.sql).
+SQL Editor → cole → Run.
+
+### ⏳ Aplicar migration 009 no Supabase
 Comissão padrão por profissional + tabela `comissoes_config` (overrides por serviço).
 Conteúdo em [`supabase/migrations/009_profissionais_comissoes.sql`](supabase/migrations/009_profissionais_comissoes.sql).
 SQL Editor → cole → Run.
