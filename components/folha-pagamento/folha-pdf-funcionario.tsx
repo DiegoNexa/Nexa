@@ -68,7 +68,9 @@ export function FolhaPdfFuncionario({ nomeSalao, folha }: Props) {
             {atendimentos.map((a) => (
               <View key={a.id} style={s.tableRow}>
                 <Text style={{ flex: 1 }}>{formatarDataBR(a.data_hora_inicio)}</Text>
-                <Text style={{ flex: 2 }}>{truncar(a.servico_nome, 50)}</Text>
+                <View style={{ flex: 2, overflow: "hidden", paddingRight: 4 }}>
+                  <Text>{truncar(a.servico_nome, 35)}</Text>
+                </View>
                 <Text style={[{ flex: 1.2 }, s.right, s.bold]}>{BRL.format(a.comissao_valor)}</Text>
               </View>
             ))}
