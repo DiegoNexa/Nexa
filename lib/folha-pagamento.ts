@@ -243,3 +243,14 @@ export const TIPO_LABEL: Record<Movimento["tipo"], string> = {
   desconto:      "Desconto",
   bonus:         "Bônus",
 };
+
+/**
+ * Trunca string com ellipsis se exceder o limite. Útil em PDFs
+ * onde react-pdf não respeita CSS word-break — texto sem espaços
+ * estoura o layout. Cortar no JS é a forma confiável.
+ */
+export function truncar(texto: string | null | undefined, maxChars = 60): string {
+  if (!texto) return "—";
+  if (texto.length <= maxChars) return texto;
+  return texto.slice(0, maxChars - 1).trimEnd() + "…";
+}

@@ -3,7 +3,7 @@ import { pdfStyles as s, COLORS } from "./pdf-styles";
 import {
   BRL,
   formatarDataBR,
-  TIPO_LABEL,
+  truncar,
   type FolhaResumo,
 } from "@/lib/folha-pagamento";
 
@@ -68,7 +68,7 @@ export function FolhaPdfFuncionario({ nomeSalao, folha }: Props) {
             {atendimentos.map((a) => (
               <View key={a.id} style={s.tableRow}>
                 <Text style={{ flex: 1 }}>{formatarDataBR(a.data_hora_inicio)}</Text>
-                <Text style={{ flex: 2 }}>{a.servico_nome}</Text>
+                <Text style={{ flex: 2 }}>{truncar(a.servico_nome, 50)}</Text>
                 <Text style={[{ flex: 1.2 }, s.right, s.bold]}>{BRL.format(a.comissao_valor)}</Text>
               </View>
             ))}

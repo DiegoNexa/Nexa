@@ -138,7 +138,7 @@ export function MovimentoForm({ profissionalId }: Props) {
             name="descricao"
             type="text"
             placeholder="Ex: vale de R$100 — pagamento Maria"
-            maxLength={200}
+            maxLength={100}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all-custom text-on-surface placeholder-on-surface-variant"
             style={{
               background: "rgba(255,255,255,0.06)",

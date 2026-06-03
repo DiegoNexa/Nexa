@@ -15,7 +15,7 @@ const movimentoSchema = z.object({
   valor:           valorSchema,
   descricao:       z.preprocess(
     (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
-    z.string().trim().max(200, "Descrição muito longa").optional(),
+    z.string().trim().max(100, "Descrição muito longa (máximo 100 caracteres)").optional(),
   ),
   data_movimento:  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
 });
