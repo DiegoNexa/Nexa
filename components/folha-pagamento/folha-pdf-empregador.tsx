@@ -5,7 +5,7 @@ import {
   formatarDataBR,
   formatarDataHoraBR,
   TIPO_LABEL,
-  truncar,
+  quebrarPalavrasLongas,
   type FolhaResumo,
 } from "@/lib/folha-pagamento";
 
@@ -81,14 +81,14 @@ export function FolhaPdfEmpregador({ nomeSalao, folha }: Props) {
               const margem = a.servico_preco - a.comissao_valor;
               return (
                 <View key={a.id} style={s.tableRow}>
-                  <View style={{ flex: 1.2, overflow: "hidden" }}>
+                  <View style={{ flex: 1.2, paddingRight: 4 }}>
                     <Text style={s.small}>{formatarDataHoraBR(a.data_hora_inicio)}</Text>
                   </View>
-                  <View style={{ flex: 1.5, overflow: "hidden", paddingRight: 4 }}>
-                    <Text>{truncar(a.cliente_nome, 22)}</Text>
+                  <View style={{ flex: 1.5, paddingRight: 4 }}>
+                    <Text>{quebrarPalavrasLongas(a.cliente_nome)}</Text>
                   </View>
-                  <View style={{ flex: 1.5, overflow: "hidden", paddingRight: 4 }}>
-                    <Text>{truncar(a.servico_nome, 22)}</Text>
+                  <View style={{ flex: 1.5, paddingRight: 4 }}>
+                    <Text>{quebrarPalavrasLongas(a.servico_nome)}</Text>
                   </View>
                   <Text style={[{ flex: 0.8 }, s.right]}>{BRL.format(a.servico_preco)}</Text>
                   <Text style={[{ flex: 0.6 }, s.right]}>{a.percentual}%</Text>
@@ -126,14 +126,14 @@ export function FolhaPdfEmpregador({ nomeSalao, folha }: Props) {
               const isBonus = m.tipo === "bonus";
               return (
                 <View key={m.id} style={s.tableRow}>
-                  <View style={{ flex: 0.9, overflow: "hidden" }}>
+                  <View style={{ flex: 0.9, paddingRight: 4 }}>
                     <Text style={s.small}>{formatarDataBR(m.data_movimento)}</Text>
                   </View>
-                  <View style={{ flex: 1, overflow: "hidden", paddingRight: 4 }}>
+                  <View style={{ flex: 1, paddingRight: 4 }}>
                     <Text>{TIPO_LABEL[m.tipo]}</Text>
                   </View>
-                  <View style={{ flex: 2.5, overflow: "hidden", paddingRight: 4 }}>
-                    <Text>{truncar(m.descricao, 35)}</Text>
+                  <View style={{ flex: 2.5, paddingRight: 4 }}>
+                    <Text>{quebrarPalavrasLongas(m.descricao)}</Text>
                   </View>
                   <Text
                     style={[{ flex: 1 }, s.right, s.bold, isBonus ? s.success : s.error]}

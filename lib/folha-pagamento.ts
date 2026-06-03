@@ -254,3 +254,33 @@ export function truncar(texto: string | null | undefined, maxChars = 60): string
   if (texto.length <= maxChars) return texto;
   return texto.slice(0, maxChars - 1).trimEnd() + "…";
 }
+
+/**
+ * Insere zero-width spaces (U+200B) em palavras longas pra
+ * dar oportunidades de quebra de linha pro react-pdf.
+ *
+ * react-pdf quebra texto naturalmente em espaços, mas se a
+ * palavra é só "aaaaaaaaaa..." sem espaços, ele estoura o
+ * layout. Inserindo ZWSP a cada N chars, o motor de layout
+ * passa a poder quebrar nesses pontos — sem afetar visualmente
+ * a string (o caractere é invisível).
+ */
+export function quebrarPalavrasLongas(
+  texto: string | null | undefined,
+  maxPalavra = 18,
+): string {
+  if (!texto) return "—";
+
+  const ZWSP = String.fromCharCode(0x200B); // zero-width space — invisível mas dá break opportunity
+  return texto
+    .split(/(\s+)/) // preserva os espaços no split
+    .map((parte) => {
+      if (parte.length <= maxPalavra) return parte;
+      const chunks: string[] = [];
+      for (let i = 0; i < parte.length; i += maxPalavra) {
+        chunks.push(parte.slice(i, i + maxPalavra));
+      }
+      return chunks.join(ZWSP);
+    })
+    .join("");
+}

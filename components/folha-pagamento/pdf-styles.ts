@@ -92,7 +92,8 @@ export const pdfStyles = StyleSheet.create({
   },
   tableRow: {
     flexDirection:    "row",
-    paddingVertical:  6,
+    alignItems:       "flex-start",
+    paddingVertical:  8,
     paddingHorizontal: 8,
     borderBottom:     `1 solid ${COLORS.border}`,
     fontSize:         9,
