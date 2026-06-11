@@ -29,13 +29,14 @@ export const metadata: Metadata = {
     template: "%s · Nexa",
   },
   description:
-    "Automatize agendamentos pelo WhatsApp com IA, controle agenda, estoque, equipe e finanças do seu salão. 30 dias grátis, sem cartão de crédito.",
+    "Agenda online com link público, gestão de equipe, comissões automáticas, folha de pagamento em PDF e controle de estoque. 30 dias grátis, sem cartão de crédito.",
   keywords: [
     "nexa",
     "salão",
     "gestão de salão",
     "agendamento online",
-    "whatsapp com ia",
+    "link público de agendamento",
+    "folha de pagamento salão",
     "saas beleza",
   ],
   authors: [{ name: "Nexa" }],
@@ -51,14 +52,14 @@ export const metadata: Metadata = {
     siteName: "Nexa",
     title: "Nexa — Gestão inteligente para salões de beleza",
     description:
-      "Automatize agendamentos pelo WhatsApp com IA, controle agenda, estoque, equipe e finanças. 30 dias grátis.",
+      "Agenda online com link público, gestão de equipe, comissões automáticas e folha de pagamento em PDF. 30 dias grátis.",
     images: [{ url: "/logo.png", width: 1200, height: 1200, alt: "Nexa" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Nexa — Gestão inteligente para salões de beleza",
     description:
-      "Automatize agendamentos pelo WhatsApp com IA. Agenda, estoque, equipe e finanças em uma plataforma.",
+      "Agenda online com link público de agendamento, comissões, folha de pagamento e mais — em uma plataforma.",
     images: ["/logo.png"],
   },
   robots: { index: true, follow: true },
@@ -71,7 +72,7 @@ const schemaOrg = {
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   description:
-    "SaaS de gestão para salões de beleza com IA integrada ao WhatsApp.",
+    "SaaS de gestão para salões de beleza: agenda online, comissões, folha de pagamento, estoque e mais.",
   url: SITE_URL,
   offers: [
     { "@type": "Offer", name: "Solo",         price: "49",  priceCurrency: "BRL" },

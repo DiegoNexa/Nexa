@@ -4,6 +4,12 @@ Lista de pendências manuais antes de subir a Nexa em produção.
 
 ---
 
+## 🔮 Funcionalidades adiadas (não vão no v1.0)
+
+- **WhatsApp + IA para agendamento automático** — plano técnico preservado em [`ROADMAP.md`](ROADMAP.md). Adiado por custo operacional alto (APIs + tokens GPT). Gatilhos para retomar listados no roadmap.
+
+---
+
 ## 🌐 Configurar domínio final (faça quando o domínio estiver decidido)
 
 Quando você comprar/definir o domínio (ex: `nexa.com.br`, `app.nexa.com.br`), **três lugares** precisam ser atualizados em sequência:

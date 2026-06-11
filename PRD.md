@@ -16,9 +16,11 @@ Versão 1.2 | Maio 2026
 
 Nexa é um SaaS B2B de gestão para serviços de beleza, criado para
 
-centralizar agenda, clientes, estoque e finanças em uma única
+centralizar agenda, clientes, estoque, equipe e finanças em uma única
 
-plataforma, com IA integrada ao WhatsApp para agendamento automático.
+plataforma — com folha de pagamento automatizada e link público de
+
+agendamento online.
 
 
 
@@ -92,19 +94,27 @@ a operação.
 
 
 
-\## 4. Os 5 Pilares da Nexa
+\## 4. Os 5 Pilares da Nexa (v1.0)
 
 
 
-1\. Agenda inteligente
+1\. Agenda inteligente + link público de agendamento
 
-2\. WhatsApp com IA para agendamento automático
+2\. Gestão de equipe (carga horária, comissões, salário fixo)
 
-3\. Gestão de estoque com lembretes via site
+3\. Gestão de estoque com alertas
 
-4\. Avisos aos clientes para manter frequência
+4\. Folha de pagamento com geração de PDF
 
-5\. Gestão financeira completa
+5\. Histórico de cliente e controle financeiro
+
+
+
+> WhatsApp com IA para agendamento automático foi planejado e
+
+> adiado para pós-lançamento por custo operacional. Plano completo
+
+> em [ROADMAP.md](ROADMAP.md).
 
 
 
@@ -128,69 +138,7 @@ a operação.
 
 
 
-5.2 WhatsApp com IA
-
-\- Cliente manda mensagem no WhatsApp do salão
-
-\- IA responde automaticamente, entende o pedido e agenda o horário
-
-\- Integração direta com a agenda da plataforma
-
-\- Confirmação automática enviada ao cliente
-
-\- Lembrete automático antes do horário
-
-\- Mensagens de reengajamento para clientes sem visita
-
-
-
-Inteligência Artificial
-
-A IA é processada pela Evolution API com integração nativa ao GPT
-
-(OpenAI). O bot interpreta linguagem natural, identifica serviço,
-
-profissional e horário desejado, e confirma o agendamento direto na
-
-plataforma. Sem código extra na camada de IA, apenas configuração.
-
-
-
-Integração e Progressão Técnica
-
-Fase 1 — MVP (Evolution API)
-
-A integração utiliza Evolution API, solução open source hospedada em
-
-servidor próprio via Docker. Opera via emulação do WhatsApp Web,
-
-eliminando burocracia de aprovação e custo por mensagem. Custo
-
-estimado: R$50–100/mês de servidor, zero por mensagem. Indicado para
-
-validação do produto e primeiros clientes.
-
-
-
-Fase 2 — Escala (Meta Cloud API)
-
-Com o produto validado, a integração migra para a Meta Cloud API
-
-oficial. A transição é realizada na camada de configuração do
-
-Evolution API, sem reescrita de código. Elimina o risco de ban de
-
-contas e garante estabilidade em escala. Custo estimado por salão:
-
-R$15–40/mês considerando lembretes (utilidade, ~R$0,05/msg) e
-
-reengajamento (marketing, ~R$0,35/msg). Mensagens iniciadas pelo
-
-cliente dentro da janela de 24h são gratuitas.
-
-
-
-5.3 Gestão de Estoque
+5.2 Gestão de Estoque
 
 \- Cadastro de produtos com quantidade mínima
 
@@ -202,7 +150,7 @@ cliente dentro da janela de 24h são gratuitas.
 
 
 
-5.4 Gestão de Funcionários
+5.3 Gestão de Funcionários
 
 \- Cadastro de profissional com nome e telefone
 
@@ -210,27 +158,31 @@ cliente dentro da janela de 24h são gratuitas.
 
 \- Comissão configurável por profissional e por serviço
 
+\- Salário fixo opcional (CLT/mensalista)
+
 \- Visualização de agenda individual por profissional
+
+\- Folha de pagamento com geração de PDF (funcionário e empregador)
 
 \- Extrato de comissões gerado automaticamente por período
 
 
 
-5.5 Avisos aos Clientes
+5.4 Histórico de Cliente
 
-\- Identificar clientes sem visita há X dias
+\- Identificar clientes sem visita há X dias (dashboard)
 
-\- Envio automático de mensagem de retorno via WhatsApp
+\- Marcar aniversariantes (dashboard)
 
-\- Mensagem de aniversário automática
+\- Última visita exibida em cada cliente
 
-\- Templates simples com variáveis de nome e data
+\- Total de atendimentos concluídos
 
-\- Cliente pode responder e o salão recebe no WhatsApp normalmente
+\- Próximos agendamentos vinculados
 
 
 
-5.6 Gestão Financeira
+5.5 Gestão Financeira
 
 \- Receitas por agendamento e serviço
 
@@ -286,11 +238,13 @@ Solo — R$49/mês
 
 \- 1 profissional
 
-\- Agenda, WhatsApp IA, lembretes, avisos de retorno
+\- Agenda, link público de agendamento, lembretes no dashboard
+
+\- Histórico de cliente e marcador de aniversariantes
 
 \- Gestão de estoque básica
 
-\- Relatórios básicos
+\- Folha de pagamento simples
 
 \- Suporte por email
 
@@ -330,25 +284,25 @@ Premium — R$199/mês
 
 
 
-\- Como autônoma, quero que meus clientes consigam agendar pelo
+\- Como autônoma, quero que meus clientes consigam agendar online
 
-&#x20; WhatsApp sem eu precisar responder.
+&#x20; sozinhos pelo link público, sem eu precisar responder mensagens.
 
 \- Como autônoma, quero receber um alerta quando meu produto
 
 &#x20; estiver acabando.
 
-\- Como dono de salão, quero que o sistema avise automaticamente
+\- Como dono de salão, quero ver no dashboard quem sumiu há mais
 
-&#x20; clientes que sumiram.
+&#x20; de X dias para conversar manualmente.
 
 \- Como dono de salão, quero ver o faturamento e comissões de
 
-&#x20; cada profissional no mês.
+&#x20; cada profissional no mês e baixar a folha em PDF.
 
-\- Como cliente, quero receber confirmação e lembrete do meu
+\- Como cliente, quero acessar um link e marcar meu horário online
 
-&#x20; horário pelo WhatsApp.
+&#x20; sem precisar baixar app.
 
 
 
@@ -359,6 +313,10 @@ Premium — R$199/mês
 \## 9. Fora do Escopo (v1.0)
 
 
+
+\- WhatsApp + IA para agendamento automático (custo operacional alto — ver [ROADMAP.md](ROADMAP.md))
+
+\- Envio automatizado de mensagens (depende de WhatsApp)
 
 \- App mobile nativo
 

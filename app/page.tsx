@@ -21,9 +21,9 @@ const nexaPlans = [
     tag: "Plano Solo",
     professionals: "1 profissional",
     price: { mensal: 49, semestral: 42, anual: 34 },
-    description: "Para autônomas que querem organizar a agenda e automatizar o WhatsApp.",
+    description: "Para autônomas que querem organizar a agenda e ter link público de agendamento.",
     popular: false,
-    features: ["Agenda completa", "WhatsApp com IA", "Lembretes automáticos", "Avisos de retorno", "Estoque básico", "Relatórios básicos", "Link público de agendamento"],
+    features: ["Agenda completa", "Link público de agendamento", "Lembretes no dashboard", "Aniversariantes do mês", "Estoque básico", "Relatórios básicos"],
     support: "Suporte por e-mail",
     buttonText: "Começar grátis",
   },
@@ -52,17 +52,17 @@ const nexaPlans = [
 ];
 
 const objectives = [
-  { icon: "schedule",     title: "Otimize seu Tempo",         desc: "Automatize agendamentos via WhatsApp com IA e libere sua atenção para o que importa." },
+  { icon: "schedule",     title: "Otimize seu Tempo",         desc: "Seus clientes agendam sozinhos pelo link público. Você foca em atender bem." },
   { icon: "favorite",     title: "Fidelize seu Cliente",      desc: "Reengajamento automático, lembretes e mensagens de aniversário para manter a frequência." },
   { icon: "trending_up",  title: "Aumente seu Faturamento",   desc: "Reduza faltas, aumente agendamentos e tenha controle financeiro completo." },
 ];
 
 const features = [
   { icon: "calendar_today", title: "Agenda Inteligente",    desc: "Dia, semana e mês. Link público para o cliente agendar sozinho." },
-  { icon: "smart_toy",      title: "WhatsApp com IA",        desc: "A IA agenda automaticamente — sem você tocar no celular." },
+  { icon: "link",           title: "Link Público de Agendamento", desc: "Seu cliente acessa seu link, escolhe profissional e horário, e marca em 30 segundos." },
   { icon: "add_shopping_cart", title: "Overbump no Checkout", desc: "Sugere produtos na hora do pagamento. Aumenta o ticket médio do atendimento sem esforço." },
   { icon: "notifications",  title: "Lembretes de Horário",   desc: "Confirmação e lembrete automático enviados antes do horário." },
-  { icon: "forum",          title: "Mensagens de Retorno",   desc: "Dispara reengajamento para clientes sumidos via WhatsApp." },
+  { icon: "history",        title: "Histórico de Cliente",    desc: "Veja última visita, total de atendimentos e clientes que sumiram há muito tempo." },
   { icon: "inventory_2",    title: "Gestão de Estoque",      desc: "Baixa automática ao registrar serviço. Alerta de estoque mínimo." },
   { icon: "payments",       title: "Gestão Financeira",      desc: "Receitas, despesas, comissões automáticas e relatórios." },
   { icon: "group",          title: "Gestão de Equipe",       desc: "Carga horária, comissões por serviço e extrato individual." },
@@ -70,7 +70,7 @@ const features = [
 ];
 
 const personas = [
-  { icon: "content_cut",      title: "Autônoma",           tag: "Solo",              desc: "Trabalha sozinha, usa WhatsApp para marcar horários. Quer praticidade, não complexidade.", plan: "Plano Solo · R$49/mês",         popular: false },
+  { icon: "content_cut",      title: "Autônoma",           tag: "Solo",              desc: "Trabalha sozinha. Marca horários no caderno ou no zap. Quer praticidade, não complexidade.", plan: "Plano Solo · R$49/mês",         popular: false },
   { icon: "business_center",  title: "Salão de Bairro",    tag: "2 a 5 profissionais", desc: "Dono acumula função de atendente e gestor. Precisa controlar comissões e reduzir faltas.", plan: "Plano Profissional · R$99/mês", popular: true  },
   { icon: "emoji_events",     title: "Salão Consolidado",  tag: "6+ profissionais",  desc: "Clientela fiel. Quer relatórios, metas e gestão profissional completa.",                   plan: "Plano Premium · R$199/mês",    popular: false },
 ];
@@ -82,14 +82,14 @@ const steps = [
 ];
 
 const faqs = [
-  { q: "O que é a Nexa?",                           a: "A Nexa é um sistema de gestão completo para salões de beleza, com agenda inteligente, IA no WhatsApp, controle financeiro, gestão de equipe e muito mais — em uma única plataforma." },
-  { q: "Como funciona e o que a Nexa soluciona?",   a: "A Nexa organiza agenda, clientes, estoque e finanças em uma só plataforma, com uma IA no WhatsApp que agenda sozinha pelo seu cliente. Soluciona a bagunça de papel e planilha, as faltas de cliente, o produto que acaba sem aviso e a falta de controle financeiro." },
-  { q: "A IA do WhatsApp funciona automaticamente?", a: "Sim. Nossa IA interpreta as mensagens dos seus clientes, consulta a agenda em tempo real e confirma ou reagenda os horários — sem você precisar tocar no celular." },
+  { q: "O que é a Nexa?",                           a: "A Nexa é um sistema de gestão completo para salões de beleza: agenda, link público de agendamento, controle financeiro, folha de pagamento automatizada com PDF, gestão de equipe e estoque — em uma única plataforma." },
+  { q: "Como funciona e o que a Nexa soluciona?",   a: "A Nexa organiza agenda, clientes, estoque e finanças em uma só plataforma. Seus clientes marcam horário sozinhos pelo seu link público. Você gerencia comissões, gera folha de pagamento em PDF e acompanha o histórico de cada cliente. Soluciona a bagunça de papel e planilha, as faltas de cliente, o produto que acaba sem aviso e a falta de controle financeiro." },
+  { q: "Como funciona o link público de agendamento?", a: "Cada salão tem um link único (ex: nexa.com.br/agendar/seu-salao). Seu cliente acessa, escolhe o serviço, profissional e horário disponível, e confirma. O agendamento entra direto na sua agenda — sem você precisar atender mensagem." },
 ];
 
 const highlights = [
   { icon: "verified_user", label: "30 dias grátis",   sub: "Sem cartão de crédito"   },
-  { icon: "smart_toy",     label: "IA no WhatsApp",   sub: "Agendamento automático"  },
+  { icon: "link",          label: "Link público",     sub: "Cliente agenda sozinho"  },
   { icon: "headset_mic",   label: "Suporte incluso",  sub: "Em todos os planos"      },
   { icon: "bar_chart",     label: "Relatórios reais", sub: "Em tempo real"           },
 ];
@@ -222,7 +222,7 @@ export default function Home() {
               }}
             >
               NEXA
-              <span className="sr-only"> — Gestão inteligente para salões de beleza com IA no WhatsApp. Mais lucro, menos problemas.</span>
+              <span className="sr-only"> — Gestão inteligente para salões de beleza com link público de agendamento e folha de pagamento automatizada. Mais lucro, menos problemas.</span>
             </h1>
           </div>
           <p
@@ -298,7 +298,7 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-6">
             {[
               { icon: "computer",  title: "Dashboard Web",  desc: "Gestão completa: agenda, financeiro, equipe e estoque — de qualquer dispositivo." },
-              { icon: "smart_toy", title: "WhatsApp com IA", desc: "A IA entende, agenda e confirma automaticamente — sem você precisar responder." },
+              { icon: "link",      title: "Link público de agendamento", desc: "Seu cliente marca sozinho, 24h por dia, sem você precisar responder mensagens." },
             ].map((card, i) => (
               <motion.div
                 key={card.title}
@@ -836,7 +836,7 @@ export default function Home() {
                 Nexa
               </h3>
               <p className="text-sm leading-relaxed max-w-xs text-outline">
-                Gestão inteligente para salões de beleza com IA integrada ao WhatsApp.
+                Gestão inteligente para salões de beleza: agenda online, comissões, folha em PDF e mais.
               </p>
             </div>
             {[

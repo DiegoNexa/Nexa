@@ -10,7 +10,6 @@
 ```mermaid
 flowchart TD
     subgraph CLIENT["Clientes do Salão"]
-        WA[WhatsApp]
         LP[Link Público\nnexa.com.br/agendar/slug]
     end
 
@@ -21,30 +20,22 @@ flowchart TD
     subgraph APP["Next.js — Nexa App"]
         UI[Interface Web]
         API[API Routes]
-        WH[Webhook WhatsApp]
-    end
-
-    subgraph AI["Camada de IA"]
-        EVO[Evolution API\nDocker self-hosted]
-        GPT[OpenAI GPT]
+        PDF[Geração de PDFs\nreact-pdf]
     end
 
     subgraph DATA["Dados"]
         SB[(Supabase\nPostgres + RLS)]
     end
 
-    WA -->|mensagem| EVO
-    EVO -->|interpreta| GPT
-    GPT -->|resposta estruturada| EVO
-    EVO -->|webhook| WH
-    WH -->|cria agendamento| API
-    EVO -->|confirma ao cliente| WA
-
     LP -->|agendamento online| UI
     DB -->|gestão completa| UI
     UI --> API
     API --> SB
+    UI -->|baixar folha| PDF
 ```
+
+> **Pós-lançamento:** integração com WhatsApp + IA via Evolution API + OpenAI GPT.
+> Plano técnico completo em [`ROADMAP.md`](ROADMAP.md). Não está em v1.0.
 
 ---
 
@@ -81,7 +72,7 @@ flowchart TD
     APIROUTES --> API_PRO["/api/profissionais"]
     APIROUTES --> API_EST["/api/estoque"]
     APIROUTES --> API_FIN["/api/financeiro"]
-    APIROUTES --> API_WH["/api/whatsapp/webhook\nRecebe eventos\ndo Evolution API"]
+    APIROUTES --> API_PDF["/api/folha-pagamento/[id]/pdf\nGera PDF da folha"]
 ```
 
 ---
@@ -102,14 +93,18 @@ flowchart TD
     DASHLAYOUT --> C_PRO["Profissionais\nProfissionalList\nProfissionalForm\nCargoHorariaForm\nComissaoConfig"]
     DASHLAYOUT --> C_EST["Estoque\nProdutoList\nProdutoForm\nStockAlert"]
     DASHLAYOUT --> C_FIN["Financeiro\nReceitasList\nDespesaForm\nComissaoReport\nPeriodReport"]
-    DASHLAYOUT --> C_CFG["Configurações\nPerfilSalao\nWhatsAppStatus\nTemplateEditor"]
+    DASHLAYOUT --> C_CFG["Configurações\nPerfilSalao\nPreferências"]
 
     PUBLAYOUT --> C_PUB["AgendamentoPublico\nServicoSelector\nProfissionalSelector\nHorarioSelector\nConfirmacao"]
 ```
 
 ---
 
-## 4. Fluxo WhatsApp com IA
+## 4. Fluxo WhatsApp com IA (🔮 pós-lançamento — não implementado)
+
+> Esta seção descreve a integração **planejada para depois do v1.0**.
+> Veja [`ROADMAP.md`](ROADMAP.md) para custo operacional, fases e gatilhos
+> que determinam quando retomar.
 
 ```mermaid
 sequenceDiagram
@@ -151,7 +146,7 @@ flowchart LR
     D --> E[Informa nome\ne telefone]
     E --> F{Confirma}
     F -->|sim| G[Agendamento criado\norigem: link_publico]
-    G --> H[WhatsApp de\nconfirmação enviado]
+    G --> H[Confirmação na tela\n+ email opcional]
     F -->|não| D
 ```
 
