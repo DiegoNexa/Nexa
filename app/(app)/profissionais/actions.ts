@@ -177,41 +177,10 @@ export async function alternarAtivoProfissional(id: string, ativoAtual: boolean)
   revalidatePath("/profissionais");
 }
 
-export type DeleteProfissionalState = {
-  ok:       boolean;
-  message?: string;
-};
-
-export async function excluirProfissional(
-  id: string,
-  _prev: DeleteProfissionalState,
-): Promise<DeleteProfissionalState> {
-  const supabase = await createClient();
-
-  const { count, error: countErr } = await supabase
-    .from("agendamentos")
-    .select("id", { count: "exact", head: true })
-    .eq("profissional_id", id);
-
-  if (countErr) {
-    return { ok: false, message: `Erro ao verificar agendamentos: ${countErr.message}` };
-  }
-
-  if ((count ?? 0) > 0) {
-    return {
-      ok: false,
-      message:
-        `Este profissional tem ${count} agendamento(s) vinculado(s) ao histórico. ` +
-        "Use 'desativar' em vez de 'excluir' para manter o registro.",
-    };
-  }
-
-  const { error } = await supabase.from("profissionais").delete().eq("id", id);
-  if (error) return { ok: false, message: `Falha ao excluir: ${error.message}` };
-
-  revalidatePath("/profissionais");
-  redirect("/profissionais");
-}
+// Exclusão definitiva foi removida intencionalmente.
+// Profissionais com histórico de atendimentos precisam manter o
+// registro pra integridade da folha de pagamento. Use o toggle
+// "desativar" na lista — o registro fica oculto mas é preservado.
 
 // ─── Carga horária — sobrescreve tudo (7 dias atômicos) ───────
 const diaSchema = z.object({

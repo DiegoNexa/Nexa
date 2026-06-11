@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ProfissionalForm } from "@/components/profissionais/profissional-form";
 import { CargaHorariaForm } from "@/components/profissionais/carga-horaria-form";
 import { ComissoesConfigForm } from "@/components/profissionais/comissoes-config-form";
-import { DeleteProfissionalButton } from "@/components/profissionais/delete-profissional-button";
+import { HistoricoButton } from "@/components/profissionais/historico-button";
 import { atualizarProfissional } from "../actions";
 
 type Props = {
@@ -171,8 +171,8 @@ export default async function EditarProfissionalPage({ params }: Props) {
         />
       </Section>
 
-      {/* Zona de risco */}
-      <DeleteProfissionalButton id={profissional.id} nome={profissional.nome} />
+      {/* Histórico no salão (substitui o antigo "excluir") */}
+      <HistoricoButton id={profissional.id} nome={profissional.nome} />
     </div>
   );
 }

@@ -218,6 +218,203 @@ export async function carregarFolha(
   };
 }
 
+// =============================================================
+// Histórico completo de carreira (relatório de demissão)
+// =============================================================
+//
+// Diferente de carregarFolha (1 mês), esta função carrega TUDO
+// desde a admissão do profissional. Usada para gerar PDF de
+// histórico no salão — útil em casos de demissão ou pra arquivo
+// pessoal do profissional.
+//
+// Diferenças no cálculo:
+//   - Salário fixo é acumulado: salario_fixo × meses trabalhados
+//   - Comissão e movimentos somam TUDO (sem filtro de período)
+//   - Inclui estatísticas de carreira (média mensal, etc)
+// =============================================================
+
+export type HistoricoCompleto = {
+  profissional: {
+    id:              string;
+    nome:            string;
+    telefone:        string | null;
+    cor:             string | null;
+    comissao_padrao: number;
+    salario_fixo:    number;
+    created_at:      string;
+  };
+  periodo: {
+    inicio:           string;
+    fim:              string;
+    diasNoSalao:      number;
+    mesesNoSalao:     number;
+    labelDataInicio:  string;
+    labelDataFim:     string;
+  };
+  atendimentos:  AtendimentoFolha[];
+  movimentos:    Movimento[];
+  totais: {
+    salario_fixo_mensal:   number;
+    salario_fixo_total:    number;  // mensal × meses
+    comissao_bruta_total:  number;
+    descontos_total:       number;
+    bonus_total:           number;
+    total_recebido:        number;  // salario_fixo_total + comissao - desc + bonus
+  };
+  estatisticas: {
+    total_atendimentos:     number;
+    media_atendimentos_mes: number;
+    ticket_medio:           number;  // valor médio cobrado por atendimento
+    comissao_media:         number;  // valor médio de comissão por atendimento
+  };
+};
+
+export async function carregarHistoricoCompleto(
+  supabase: SupabaseClient,
+  profissionalId: string,
+): Promise<HistoricoCompleto | null> {
+  // 1. Profissional (com created_at = data de admissão)
+  const { data: prof } = await supabase
+    .from("profissionais")
+    .select("id, nome, telefone, cor, comissao_padrao, salario_fixo, created_at")
+    .eq("id", profissionalId)
+    .single<{
+      id:              string;
+      nome:            string;
+      telefone:        string | null;
+      cor:             string | null;
+      comissao_padrao: number;
+      salario_fixo:    number;
+      created_at:      string;
+    }>();
+
+  if (!prof) return null;
+
+  // 2. Período (admissão → hoje, mais 1 dia para incluir hoje)
+  const dataInicio = new Date(prof.created_at);
+  const dataFim    = new Date();
+  const diasNoSalao  = Math.max(1, Math.floor((dataFim.getTime() - dataInicio.getTime()) / 86400000));
+  const mesesNoSalao = Math.max(1, +(diasNoSalao / 30).toFixed(2));
+
+  const periodo = {
+    inicio:           dataInicio.toISOString().slice(0, 10),
+    fim:              new Date(dataFim.getTime() + 86400000).toISOString().slice(0, 10),
+    diasNoSalao,
+    mesesNoSalao,
+    labelDataInicio:  dataInicio.toLocaleDateString("pt-BR"),
+    labelDataFim:     dataFim.toLocaleDateString("pt-BR"),
+  };
+
+  // 3. TODOS os agendamentos concluídos (sem filtro de período)
+  const { data: agendamentos } = await supabase
+    .from("agendamentos")
+    .select(`
+      id,
+      data_hora_inicio,
+      servico_id,
+      clientes ( nome ),
+      servicos ( nome, preco )
+    `)
+    .eq("profissional_id", profissionalId)
+    .eq("status", "concluido")
+    .order("data_hora_inicio", { ascending: false });
+
+  // 4. Overrides de comissão
+  const { data: overrides } = await supabase
+    .from("comissoes_config")
+    .select("servico_id, percentual")
+    .eq("profissional_id", profissionalId);
+
+  const overridesMap = new Map<string, number>();
+  for (const o of overrides ?? []) {
+    overridesMap.set(o.servico_id, o.percentual);
+  }
+
+  type RawAgendamento = {
+    id:               string;
+    data_hora_inicio: string;
+    servico_id:       string;
+    clientes:         { nome: string } | { nome: string }[] | null;
+    servicos:         { nome: string; preco: number } | { nome: string; preco: number }[] | null;
+  };
+  const pickOne = <T>(v: T | T[] | null): T | null =>
+    Array.isArray(v) ? (v[0] ?? null) : v;
+
+  const atendimentos: AtendimentoFolha[] = (agendamentos ?? []).map((a: RawAgendamento) => {
+    const cliente = pickOne(a.clientes);
+    const servico = pickOne(a.servicos);
+    const preco = Number(servico?.preco ?? 0);
+    const percentual = overridesMap.get(a.servico_id) ?? prof.comissao_padrao;
+    return {
+      id:               a.id,
+      data_hora_inicio: a.data_hora_inicio,
+      cliente_nome:     cliente?.nome ?? "Cliente removido",
+      servico_nome:     servico?.nome ?? "Serviço removido",
+      servico_preco:    preco,
+      percentual,
+      comissao_valor:   (preco * percentual) / 100,
+    };
+  });
+
+  // 5. TODOS os movimentos (sem filtro)
+  const { data: movs } = await supabase
+    .from("movimentos_folha")
+    .select("id, tipo, valor, descricao, data_movimento")
+    .eq("profissional_id", profissionalId)
+    .order("data_movimento", { ascending: false })
+    .returns<Movimento[]>();
+
+  const movimentos = movs ?? [];
+
+  // 6. Totais acumulados
+  const salario_fixo_mensal  = Number(prof.salario_fixo);
+  const salario_fixo_total   = salario_fixo_mensal * mesesNoSalao;
+  const comissao_bruta_total = atendimentos.reduce((s, a) => s + a.comissao_valor, 0);
+  const descontos_total      = movimentos
+    .filter((m) => m.tipo === "vale" || m.tipo === "adiantamento" || m.tipo === "desconto")
+    .reduce((s, m) => s + Number(m.valor), 0);
+  const bonus_total          = movimentos
+    .filter((m) => m.tipo === "bonus")
+    .reduce((s, m) => s + Number(m.valor), 0);
+  const total_recebido       = salario_fixo_total + comissao_bruta_total - descontos_total + bonus_total;
+
+  // 7. Estatísticas
+  const total_atendimentos     = atendimentos.length;
+  const media_atendimentos_mes = +(total_atendimentos / mesesNoSalao).toFixed(1);
+  const total_preco            = atendimentos.reduce((s, a) => s + a.servico_preco, 0);
+  const ticket_medio           = total_atendimentos > 0 ? total_preco / total_atendimentos : 0;
+  const comissao_media         = total_atendimentos > 0 ? comissao_bruta_total / total_atendimentos : 0;
+
+  return {
+    profissional: {
+      id:              prof.id,
+      nome:            prof.nome,
+      telefone:        prof.telefone,
+      cor:             prof.cor,
+      comissao_padrao: prof.comissao_padrao,
+      salario_fixo:    salario_fixo_mensal,
+      created_at:      prof.created_at,
+    },
+    periodo,
+    atendimentos,
+    movimentos,
+    totais: {
+      salario_fixo_mensal,
+      salario_fixo_total,
+      comissao_bruta_total,
+      descontos_total,
+      bonus_total,
+      total_recebido,
+    },
+    estatisticas: {
+      total_atendimentos,
+      media_atendimentos_mes,
+      ticket_medio,
+      comissao_media,
+    },
+  };
+}
+
 /** Format helpers */
 export const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
