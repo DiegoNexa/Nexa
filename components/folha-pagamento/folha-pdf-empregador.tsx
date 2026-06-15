@@ -3,7 +3,6 @@ import { pdfStyles as s, COLORS } from "./pdf-styles";
 import {
   BRL,
   formatarDataBR,
-  formatarDataHoraBR,
   TIPO_LABEL,
   quebrarPalavrasLongas,
   type FolhaResumo,
@@ -15,19 +14,14 @@ type Props = {
 };
 
 /**
- * PDF do empregador — visão completa para arquivo/contabilidade.
+ * PDF do empregador — visão financeira consolidada.
  *
  * Exibe:
- *   - Tabela detalhada de atendimentos com cliente, preço bruto,
- *     % aplicado, comissão paga e margem do salão
+ *   - Resumo de atendimentos: quantidade total, receita bruta,
+ *     comissão paga e margem do salão (sem listar cada um)
  *   - Cada movimento da folha individualmente (não agregado)
  *   - Breakdown: bruto → descontos → bônus → líquido
  *   - Linhas de assinatura: 1ª via empregador + 2ª via funcionário
- *
- * Esconde do funcionário (que tem o outro PDF):
- *   - Margem do salão
- *   - Preço bruto cobrado do cliente
- *   - Detalhamento por vale/desconto
  */
 export function FolhaPdfEmpregador({ nomeSalao, folha }: Props) {
   const { profissional, periodo, atendimentos, movimentos, totais } = folha;
@@ -58,53 +52,36 @@ export function FolhaPdfEmpregador({ nomeSalao, folha }: Props) {
           </Text>
         </View>
 
-        {/* Atendimentos detalhados */}
-        <Text style={s.sectionTitle}>Atendimentos detalhados</Text>
+        {/* Resumo de atendimentos (sem listar cada um) */}
+        <Text style={s.sectionTitle}>Resumo de atendimentos</Text>
 
-        {atendimentos.length === 0 ? (
-          <View style={s.tableRow}>
-            <Text style={s.muted}>Nenhum atendimento concluído no período.</Text>
-          </View>
-        ) : (
-          <View>
-            <View style={s.tableHead}>
-              <Text style={{ flex: 1.2 }}>Data/Hora</Text>
-              <Text style={{ flex: 1.5 }}>Cliente</Text>
-              <Text style={{ flex: 1.5 }}>Serviço</Text>
-              <Text style={[{ flex: 0.8 }, s.right]}>Preço</Text>
-              <Text style={[{ flex: 0.6 }, s.right]}>%</Text>
-              <Text style={[{ flex: 0.9 }, s.right]}>Comissão</Text>
-              <Text style={[{ flex: 0.9 }, s.right]}>Salão</Text>
-            </View>
-
-            {atendimentos.map((a) => {
-              const margem = a.servico_preco - a.comissao_valor;
-              return (
-                <View key={a.id} style={s.tableRow}>
-                  <View style={{ flex: 1.2, paddingRight: 4 }}>
-                    <Text style={s.small}>{formatarDataHoraBR(a.data_hora_inicio)}</Text>
-                  </View>
-                  <View style={{ flex: 1.5, paddingRight: 4 }}>
-                    <Text>{quebrarPalavrasLongas(a.cliente_nome)}</Text>
-                  </View>
-                  <View style={{ flex: 1.5, paddingRight: 4 }}>
-                    <Text>{quebrarPalavrasLongas(a.servico_nome)}</Text>
-                  </View>
-                  <Text style={[{ flex: 0.8 }, s.right]}>{BRL.format(a.servico_preco)}</Text>
-                  <Text style={[{ flex: 0.6 }, s.right]}>{a.percentual}%</Text>
-                  <Text style={[{ flex: 0.9 }, s.right, s.bold]}>{BRL.format(a.comissao_valor)}</Text>
-                  <Text style={[{ flex: 0.9 }, s.right, s.muted]}>{BRL.format(margem)}</Text>
-                </View>
-              );
-            })}
-
-            <View style={s.tableTotalRow}>
-              <Text style={{ flex: 5 }}>SUBTOTAIS</Text>
-              <Text style={[{ flex: 0.9 }, s.right]}>{BRL.format(totais.comissao_bruta)}</Text>
-              <Text style={[{ flex: 0.9 }, s.right]}>{BRL.format(margemSalao)}</Text>
-            </View>
-          </View>
-        )}
+        <View style={s.rowBetween}>
+          <Text>Quantidade total de atendimentos concluídos</Text>
+          <Text style={s.bold}>{atendimentos.length}</Text>
+        </View>
+        <View style={s.rowBetween}>
+          <Text>Receita bruta (preço dos serviços)</Text>
+          <Text style={s.bold}>
+            {BRL.format(atendimentos.reduce((sum, a) => sum + a.servico_preco, 0))}
+          </Text>
+        </View>
+        <View style={s.rowBetween}>
+          <Text>(−) Comissão paga ao profissional</Text>
+          <Text style={[s.bold, s.error]}>− {BRL.format(totais.comissao_bruta)}</Text>
+        </View>
+        <View
+          style={[
+            s.rowBetween,
+            {
+              marginTop: 4,
+              paddingTop: 6,
+              borderTop: `1 solid ${COLORS.border}`,
+            },
+          ]}
+        >
+          <Text style={s.bold}>= Lucro bruto do salão (margem)</Text>
+          <Text style={[s.bold, s.success, { fontSize: 12 }]}>{BRL.format(margemSalao)}</Text>
+        </View>
 
         {/* Movimentos detalhados */}
         <Text style={s.sectionTitle}>Movimentos da folha</Text>

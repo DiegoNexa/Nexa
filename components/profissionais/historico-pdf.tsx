@@ -3,7 +3,6 @@ import { pdfStyles as s } from "@/components/folha-pagamento/pdf-styles";
 import {
   BRL,
   formatarDataBR,
-  formatarDataHoraBR,
   quebrarPalavrasLongas,
   TIPO_LABEL,
   type HistoricoCompleto,
@@ -22,10 +21,14 @@ type Props = {
  *   - Acordo pra cálculo de rescisão
  *   - Pedido do próprio profissional pra arquivo pessoal
  *
- * Estrutura em 3 páginas:
- *   Pág 1: Identificação + estatísticas + resumo financeiro
- *   Pág 2: Lista completa de atendimentos
- *   Pág 3: Movimentos da folha + assinaturas
+ * Estrutura em 2 páginas:
+ *   Pág 1: Identificação + estatísticas (total atendimentos e médias)
+ *          + resumo financeiro acumulado + total recebido
+ *   Pág 2: Movimentos da folha (vales, adiantamentos, bônus) +
+ *          assinaturas empregador/funcionário
+ *
+ * Nota: O detalhamento por atendimento NÃO é incluído — relatório
+ * fica focado em totais.
  */
 export function HistoricoPdf({ nomeSalao, historico }: Props) {
   const { profissional, periodo, atendimentos, movimentos, totais, estatisticas } = historico;
@@ -131,65 +134,7 @@ export function HistoricoPdf({ nomeSalao, historico }: Props) {
         </Text>
       </Page>
 
-      {/* ────────────── PÁGINA 2: ATENDIMENTOS ────────────── */}
-      <Page size="A4" style={s.page}>
-        <View style={s.header}>
-          <Text style={s.headerBrand}>Nexa</Text>
-          <View>
-            <Text style={s.headerMeta}>{nomeSalao}</Text>
-            <Text style={s.headerMeta}>{profissional.nome}</Text>
-          </View>
-        </View>
-
-        <Text style={s.sectionTitle}>
-          Detalhamento dos atendimentos ({atendimentos.length})
-        </Text>
-
-        {atendimentos.length === 0 ? (
-          <View style={s.tableRow}>
-            <Text style={s.muted}>Nenhum atendimento concluído no período.</Text>
-          </View>
-        ) : (
-          <View>
-            <View style={s.tableHead}>
-              <Text style={{ flex: 1.2 }}>Data/Hora</Text>
-              <Text style={{ flex: 1.5 }}>Cliente</Text>
-              <Text style={{ flex: 1.5 }}>Serviço</Text>
-              <Text style={[{ flex: 0.8 }, s.right]}>Preço</Text>
-              <Text style={[{ flex: 0.6 }, s.right]}>%</Text>
-              <Text style={[{ flex: 1 }, s.right]}>Comissão</Text>
-            </View>
-
-            {atendimentos.map((a) => (
-              <View key={a.id} style={s.tableRow}>
-                <View style={{ flex: 1.2, paddingRight: 4 }}>
-                  <Text style={s.small}>{formatarDataHoraBR(a.data_hora_inicio)}</Text>
-                </View>
-                <View style={{ flex: 1.5, paddingRight: 4 }}>
-                  <Text>{quebrarPalavrasLongas(a.cliente_nome)}</Text>
-                </View>
-                <View style={{ flex: 1.5, paddingRight: 4 }}>
-                  <Text>{quebrarPalavrasLongas(a.servico_nome)}</Text>
-                </View>
-                <Text style={[{ flex: 0.8 }, s.right]}>{BRL.format(a.servico_preco)}</Text>
-                <Text style={[{ flex: 0.6 }, s.right]}>{a.percentual}%</Text>
-                <Text style={[{ flex: 1 }, s.right, s.bold]}>{BRL.format(a.comissao_valor)}</Text>
-              </View>
-            ))}
-
-            <View style={s.tableTotalRow}>
-              <Text style={{ flex: 5.6 }}>SUBTOTAL DE COMISSÕES</Text>
-              <Text style={[{ flex: 1 }, s.right]}>{BRL.format(totais.comissao_bruta_total)}</Text>
-            </View>
-          </View>
-        )}
-
-        <Text style={s.footer} fixed>
-          {profissional.nome} · Histórico no salão · {nomeSalao}
-        </Text>
-      </Page>
-
-      {/* ────────────── PÁGINA 3: MOVIMENTOS + ASSINATURAS ────────────── */}
+      {/* ────────────── PÁGINA 2: MOVIMENTOS + ASSINATURAS ────────────── */}
       <Page size="A4" style={s.page}>
         <View style={s.header}>
           <Text style={s.headerBrand}>Nexa</Text>
