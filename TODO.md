@@ -72,7 +72,79 @@ git push
 
 ## 📋 Outras pendências pré-deploy
 
-### ⏳ Aplicar migration 014 no Supabase (mais recente)
+### ⏳ Aplicar migration 015 no Supabase (mais recente)
+Adiciona coluna `lembrete_enviado boolean default false` em `agendamentos`
++ índice parcial pra cron achar rapidamente os pendentes.
+Conteúdo em [`supabase/migrations/015_agendamentos_lembrete.sql`](supabase/migrations/015_agendamentos_lembrete.sql).
+SQL Editor → cole → Run.
+
+### 🔧 Configurar lembretes por e-mail (Resend + Cron)
+
+**Visão geral:** cron roda a cada 15 min, busca agendamentos
+começando em ~1h (janela 45–75min), envia e-mail pra clientes
+com email cadastrado.
+
+#### Passo 1 — Criar conta no Resend
+1. Acesse `resend.com` → criar conta grátis (100 e-mails/dia)
+2. **Verifique um domínio** (essencial pra produção):
+   - `Domains` → `Add Domain` → seu domínio
+   - Adiciona os registros DNS que aparecerem
+   - Aguarda verificação (alguns minutos)
+3. **Sem domínio verificado:** Resend só envia para o e-mail
+   da conta. Use só pra testar.
+
+#### Passo 2 — Gerar API Key
+- `API Keys` → `Create API Key`
+- Permissão: `Send access` (sem permissão de gerenciar)
+- Copie o valor `re_...`
+
+#### Passo 3 — Pegar SUPABASE_SECRET_KEY
+- Supabase Dashboard → `Settings` → `API`
+- Copie `service_role` key (`sb_secret_...`)
+- ⚠️ Bypassa RLS — só usa no servidor
+
+#### Passo 4 — Gerar CRON_SECRET
+- Qualquer string aleatória forte. Sugestão:
+  ```bash
+  openssl rand -base64 32
+  ```
+
+#### Passo 5 — Configurar env vars
+
+**Local (`.env.local`):**
+```
+RESEND_API_KEY=re_seu_token_aqui
+SUPABASE_SECRET_KEY=sb_secret_seu_valor_aqui
+CRON_SECRET=string_aleatoria_aqui
+EMAIL_FROM=Nexa <lembrete@seudominio.com.br>
+```
+
+**Produção (Vercel):**
+- Project → `Settings` → `Environment Variables`
+- Adicionar os mesmos 4 valores
+- Marcar como `Production` (e `Preview` se quiser)
+
+#### Passo 6 — Cron
+
+**Se está no Vercel:** já está configurado via `vercel.json`.
+Schedule `*/15 * * * *` (a cada 15 min). Funciona em Hobby/Pro.
+Vercel envia `Authorization: Bearer ${CRON_SECRET}` automaticamente.
+
+**Se NÃO está no Vercel:** use um cron externo apontando pra
+`https://seudominio.com/api/cron/lembretes` com header
+`Authorization: Bearer SEU_CRON_SECRET`. Opções:
+- cron-job.org (grátis)
+- EasyCron (grátis até 50 tasks)
+- GitHub Actions (cron via workflow + curl)
+
+#### Passo 7 — Testar
+```bash
+curl -H "Authorization: Bearer SEU_CRON_SECRET" \
+  https://seudominio.com/api/cron/lembretes
+```
+Resposta JSON com `enviados`, `candidatos`, `erros`.
+
+### ⏳ Aplicar migration 014 no Supabase
 Adiciona parâmetro `p_cliente_email` (opcional) na função `criar_agendamento_publico`.
 - Cliente novo: salva o email no cadastro.
 - Cliente existente (encontrado por telefone): completa email se ainda não tinha.
