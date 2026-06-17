@@ -195,7 +195,31 @@ export function AgendarForm({ slug, servicos, profissionais, bloqueios }: Props)
             }}
           />
           <p className="text-xs text-on-surface-variant mt-1.5">
-            Usaremos esse número para identificar você e enviar lembretes.
+            Usaremos esse número para identificar você.
+          </p>
+        </Field>
+
+        <Field error={state.fieldErrors?.cliente_email}>
+          <Label htmlFor="cliente_email" optional>E-mail</Label>
+          <input
+            id="cliente_email"
+            name="cliente_email"
+            type="email"
+            autoComplete="email"
+            placeholder="seu@email.com"
+            defaultValue={state.values?.cliente_email ?? ""}
+            maxLength={100}
+            aria-invalid={!!state.fieldErrors?.cliente_email || undefined}
+            className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all-custom text-on-surface placeholder-on-surface-variant"
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              border: state.fieldErrors?.cliente_email
+                ? "1px solid var(--color-error)"
+                : "1px solid rgba(255,255,255,0.1)",
+            }}
+          />
+          <p className="text-xs text-on-surface-variant mt-1.5">
+            Receba lembretes do seu agendamento por e-mail também.
           </p>
         </Field>
       </div>

@@ -72,6 +72,7 @@ export async function carregarBloqueiosPublico(
 export function mapErroAgendamentoPublico(message: string): string {
   if (message.includes("nome_invalido"))                  return "Informe um nome válido (mínimo 2 caracteres).";
   if (message.includes("telefone_invalido"))              return "Informe um telefone válido (DDD + número, só dígitos).";
+  if (message.includes("email_invalido"))                 return "E-mail inválido.";
   if (message.includes("salao_nao_encontrado"))           return "Salão não encontrado. Confirme o link.";
   if (message.includes("profissional_invalido"))          return "Profissional inválido ou desativado.";
   if (message.includes("servico_invalido"))               return "Serviço inválido ou desativado.";

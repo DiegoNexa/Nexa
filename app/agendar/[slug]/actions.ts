@@ -10,6 +10,10 @@ const schema = z.object({
   profissional_id:   z.string().uuid("Selecione um profissional"),
   cliente_nome:      z.string().trim().min(2, "Nome muito curto").max(100),
   cliente_telefone:  z.string().regex(/^\d{10,11}$/, "Telefone inválido (DDD + número)"),
+  cliente_email:     z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.string().trim().toLowerCase().email("E-mail inválido").optional(),
+  ),
   data_hora_inicio:  z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, "Data/hora inválida"),
   observacoes:       z.preprocess(
     (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
@@ -26,6 +30,7 @@ export type AgendarPublicoState = {
     profissional_id?:  string;
     cliente_nome?:     string;
     cliente_telefone?: string;
+    cliente_email?:    string;
     data_hora_inicio?: string;
     observacoes?:      string;
   };
@@ -41,6 +46,7 @@ export async function criarAgendamentoPublico(
     profissional_id:   formData.get("profissional_id"),
     cliente_nome:      formData.get("cliente_nome"),
     cliente_telefone:  formData.get("cliente_telefone"),
+    cliente_email:     formData.get("cliente_email"),
     data_hora_inicio:  formData.get("data_hora_inicio"),
     observacoes:       formData.get("observacoes"),
   };
@@ -50,6 +56,7 @@ export async function criarAgendamentoPublico(
     profissional_id:   typeof raw.profissional_id   === "string" ? raw.profissional_id   : "",
     cliente_nome:      typeof raw.cliente_nome      === "string" ? raw.cliente_nome      : "",
     cliente_telefone:  typeof raw.cliente_telefone  === "string" ? raw.cliente_telefone  : "",
+    cliente_email:     typeof raw.cliente_email     === "string" ? raw.cliente_email     : "",
     data_hora_inicio:  typeof raw.data_hora_inicio  === "string" ? raw.data_hora_inicio  : "",
     observacoes:       typeof raw.observacoes       === "string" ? raw.observacoes       : "",
   };
@@ -91,6 +98,7 @@ export async function criarAgendamentoPublico(
     p_profissional_id:  parsed.data.profissional_id,
     p_cliente_nome:     parsed.data.cliente_nome,
     p_cliente_telefone: parsed.data.cliente_telefone,
+    p_cliente_email:    parsed.data.cliente_email ?? null,
     p_data_hora_inicio: dataInicio.toISOString(),
     p_observacoes:      parsed.data.observacoes ?? null,
   });

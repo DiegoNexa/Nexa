@@ -72,7 +72,15 @@ git push
 
 ## 📋 Outras pendências pré-deploy
 
-### ⏳ Aplicar migration 013 no Supabase (mais recente)
+### ⏳ Aplicar migration 014 no Supabase (mais recente)
+Adiciona parâmetro `p_cliente_email` (opcional) na função `criar_agendamento_publico`.
+- Cliente novo: salva o email no cadastro.
+- Cliente existente (encontrado por telefone): completa email se ainda não tinha.
+Usado pra enviar lembrete do agendamento por e-mail (infra de envio pendente).
+Conteúdo em [`supabase/migrations/014_agendar_publico_email.sql`](supabase/migrations/014_agendar_publico_email.sql).
+SQL Editor → cole → Run.
+
+### ⏳ Aplicar migration 013 no Supabase
 Cria funções SECURITY DEFINER para o link público de agendamento.
 Permite que clientes finais marquem horário em `/agendar/[slug]` sem login.
 Inclui: `get_salao_publico`, `get_servicos_publico`, `get_profissionais_publico`,
