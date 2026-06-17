@@ -72,7 +72,16 @@ git push
 
 ## 📋 Outras pendências pré-deploy
 
-### ⏳ Aplicar migration 012 no Supabase (mais recente)
+### ⏳ Aplicar migration 013 no Supabase (mais recente)
+Cria funções SECURITY DEFINER para o link público de agendamento.
+Permite que clientes finais marquem horário em `/agendar/[slug]` sem login.
+Inclui: `get_salao_publico`, `get_servicos_publico`, `get_profissionais_publico`,
+`get_bloqueios_publico`, `get_carga_horaria_publico`, `get_agendamentos_publico`,
+`criar_agendamento_publico`, `get_confirmacao_publico`.
+Conteúdo em [`supabase/migrations/013_link_publico.sql`](supabase/migrations/013_link_publico.sql).
+SQL Editor → cole → Run.
+
+### ⏳ Aplicar migration 012 no Supabase
 Adiciona `salario_fixo` em `profissionais` para salões com salário base + comissão.
 Conteúdo em [`supabase/migrations/012_salario_fixo.sql`](supabase/migrations/012_salario_fixo.sql).
 SQL Editor → cole → Run.
