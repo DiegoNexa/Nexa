@@ -5,28 +5,22 @@ import { buildLembreteAgendamento, enviarEmail } from "@/lib/email";
 export const runtime  = "nodejs";
 export const dynamic  = "force-dynamic";
 
-const STATUSES_VALIDOS = ["agendado", "confirmado"];
-
 /**
  * Endpoint chamado por cron a cada 15 min.
  *
- * Janela de captura: agendamentos que começam entre 45 e 75 min
- * no futuro. Janela de 30 min garante que mesmo com cron de 15min
- * cada agendamento será capturado em 2 ciclos consecutivos —
- * e o flag `lembrete_enviado` previne envio duplicado.
+ * Usa funções SECURITY DEFINER (migration 016) em vez de query
+ * direta. Isso evita problemas de GRANT/role no Postgres,
+ * especialmente em projetos Supabase novos onde service_role
+ * pode não ter permissões automáticas nas tabelas públicas.
  *
- * Cada execução:
- *   1. Busca candidatos (lembrete_enviado=false, status válido,
- *      data dentro da janela, cliente com email)
- *   2. Pra cada um: monta template, envia via Resend
- *   3. Após sucesso: marca lembrete_enviado=true
+ * Fluxo:
+ *   1. Valida CRON_SECRET no header Authorization
+ *   2. supabase.rpc('listar_lembretes_pendentes') retorna
+ *      candidatos (já filtra janela 45-75min + email não vazio)
+ *   3. Pra cada um: monta template, envia via Resend
+ *   4. Após sucesso: supabase.rpc('marcar_lembrete_enviado', { p_id })
  *
- * Resposta JSON com summary das execuções (útil pra debug).
- *
- * Auth: header `Authorization: Bearer ${CRON_SECRET}`.
- * Vercel envia esse header automaticamente quando CRON_SECRET
- * está configurado no projeto. Em outros providers, o cron
- * precisa enviar manualmente.
+ * Resposta JSON com summary das execuções.
  */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -52,90 +46,57 @@ export async function GET(request: Request) {
     );
   }
 
-  // Janela: 45 a 75 minutos no futuro
-  const agora   = Date.now();
-  const inicio  = new Date(agora + 45 * 60 * 1000).toISOString();
-  const fim     = new Date(agora + 75 * 60 * 1000).toISOString();
-
-  type Linha = {
-    id:               string;
-    data_hora_inicio: string;
-    cliente:          { nome: string; email: string | null } | { nome: string; email: string | null }[] | null;
-    servico:          { nome: string } | { nome: string }[] | null;
-    profissional:     { nome: string } | { nome: string }[] | null;
-    salao:            { nome: string } | { nome: string }[] | null;
+  type Candidato = {
+    agendamento_id:    string;
+    data_hora_inicio:  string;
+    cliente_nome:      string;
+    cliente_email:     string;
+    servico_nome:      string;
+    profissional_nome: string;
+    salao_nome:        string;
   };
 
-  const { data: candidatos, error } = await admin
-    .from("agendamentos")
-    .select(`
-      id,
-      data_hora_inicio,
-      cliente:clientes ( nome, email ),
-      servico:servicos ( nome ),
-      profissional:profissionais ( nome ),
-      salao:saloes ( nome )
-    `)
-    .eq("lembrete_enviado", false)
-    .in("status", STATUSES_VALIDOS)
-    .gte("data_hora_inicio", inicio)
-    .lte("data_hora_inicio", fim)
-    .returns<Linha[]>();
+  const { data, error } = await admin.rpc("listar_lembretes_pendentes");
 
   if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: `RPC listar_lembretes_pendentes: ${error.message}` },
+      { status: 500 },
+    );
   }
 
-  const lista = candidatos ?? [];
+  const lista = (data ?? []) as Candidato[];
   let enviados = 0;
-  let semEmail = 0;
   const erros: string[] = [];
 
-  const pickOne = <T>(v: T | T[] | null): T | null =>
-    Array.isArray(v) ? (v[0] ?? null) : v;
-
-  for (const a of lista) {
-    const cliente      = pickOne(a.cliente);
-    const servico      = pickOne(a.servico);
-    const profissional = pickOne(a.profissional);
-    const salao        = pickOne(a.salao);
-
-    const email = cliente?.email?.trim();
-    if (!email) {
-      semEmail++;
-      // Marca como enviado pra não tentar de novo num cliente sem email
-      await admin.from("agendamentos").update({ lembrete_enviado: true }).eq("id", a.id);
-      continue;
-    }
-
+  for (const c of lista) {
     const tpl = buildLembreteAgendamento({
-      clienteNome:  cliente?.nome ?? "Cliente",
-      data:         formatarDataLonga(a.data_hora_inicio),
-      horario:      formatarHora(a.data_hora_inicio),
-      servico:      servico?.nome ?? "Serviço",
-      profissional: profissional?.nome ?? "Profissional",
-      salaoNome:    salao?.nome ?? "Salão",
+      clienteNome:  c.cliente_nome,
+      data:         formatarDataLonga(c.data_hora_inicio),
+      horario:      formatarHora(c.data_hora_inicio),
+      servico:      c.servico_nome,
+      profissional: c.profissional_nome,
+      salaoNome:    c.salao_nome,
     });
 
     const resultado = await enviarEmail({
-      to:      email,
+      to:      c.cliente_email,
       subject: tpl.subject,
       html:    tpl.html,
       text:    tpl.text,
     });
 
     if (!resultado.ok) {
-      erros.push(`${a.id}: ${resultado.error}`);
+      erros.push(`${c.agendamento_id}: ${resultado.error}`);
       continue;  // não marca como enviado — tenta novamente na próxima rodada
     }
 
-    const { error: updErr } = await admin
-      .from("agendamentos")
-      .update({ lembrete_enviado: true })
-      .eq("id", a.id);
+    const { error: updErr } = await admin.rpc("marcar_lembrete_enviado", {
+      p_id: c.agendamento_id,
+    });
 
     if (updErr) {
-      erros.push(`${a.id} (marcação): ${updErr.message}`);
+      erros.push(`${c.agendamento_id} (marcação): ${updErr.message}`);
     }
 
     enviados++;
@@ -143,10 +104,8 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     ok:         true,
-    janela:     { inicio, fim },
     candidatos: lista.length,
     enviados,
-    semEmail,
     erros,
   });
 }

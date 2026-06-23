@@ -105,7 +105,15 @@ git push
 
 ## 📋 Outras pendências pré-deploy
 
-### ⏳ Aplicar migration 015 no Supabase (mais recente)
+### ⏳ Aplicar migration 016 no Supabase (mais recente)
+Cria funções `listar_lembretes_pendentes()` e `marcar_lembrete_enviado(id)`
+SECURITY DEFINER que o cron usa. Resolve o erro "permission denied for
+table agendamentos" que ocorre em projetos Supabase novos onde o
+service_role não tem GRANT automático.
+Conteúdo em [`supabase/migrations/016_cron_lembretes_funcoes.sql`](supabase/migrations/016_cron_lembretes_funcoes.sql).
+SQL Editor → cole → Run.
+
+### ⏳ Aplicar migration 015 no Supabase
 Adiciona coluna `lembrete_enviado boolean default false` em `agendamentos`
 + índice parcial pra cron achar rapidamente os pendentes.
 Conteúdo em [`supabase/migrations/015_agendamentos_lembrete.sql`](supabase/migrations/015_agendamentos_lembrete.sql).
