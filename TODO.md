@@ -4,6 +4,39 @@ Lista de pendências manuais antes de subir a Nexa em produção.
 
 ---
 
+## 🚨 Pendência crítica de produção
+
+### 📮 Trocar `EMAIL_FROM` quando o domínio for comprado
+
+**Estado atual:** Resend está configurado em modo de teste —
+`EMAIL_FROM=Nexa <onboarding@resend.dev>` só envia para o e-mail
+da conta Resend (verificada). Os lembretes NÃO chegam nos clientes
+reais ainda.
+
+**Quando comprar o domínio (.com.br, .com, etc.):**
+
+1. Resend Dashboard → `Domains` → `Add Domain`
+2. Digite o domínio (ex: `nexa.com.br`)
+3. Resend mostra 3 registros DNS (SPF, DKIM, MX-like)
+4. Adicione esses registros no painel do seu registrar
+   (Registro.br, Cloudflare, etc.)
+5. Aguarde verificação (1-15 min)
+6. Quando aparecer "Verified": atualize `.env.local` e produção:
+   ```
+   EMAIL_FROM=Nexa <lembrete@seudominio.com.br>
+   ```
+7. Restart do dev server / re-deploy do Vercel
+
+Sem essa troca, **os clientes reais nunca receberão o lembrete**
+— vão estar agendando mas o e-mail nunca chega.
+
+**Custos de domínio (referência):**
+- `.com.br` — Registro.br, ~R$ 40/ano
+- `.com` — Cloudflare, ~US$ 10/ano (mais barato)
+- Outros — variável
+
+---
+
 ## 🔮 Funcionalidades adiadas (não vão no v1.0)
 
 - **WhatsApp + IA para agendamento automático** — plano técnico preservado em [`ROADMAP.md`](ROADMAP.md). Adiado por custo operacional alto (APIs + tokens GPT). Gatilhos para retomar listados no roadmap.
@@ -86,12 +119,13 @@ com email cadastrado.
 
 #### Passo 1 — Criar conta no Resend
 1. Acesse `resend.com` → criar conta grátis (100 e-mails/dia)
-2. **Verifique um domínio** (essencial pra produção):
-   - `Domains` → `Add Domain` → seu domínio
-   - Adiciona os registros DNS que aparecerem
-   - Aguarda verificação (alguns minutos)
-3. **Sem domínio verificado:** Resend só envia para o e-mail
-   da conta. Use só pra testar.
+2. **Verificação de domínio:**
+   - **Em produção:** essencial → `Domains` → `Add Domain` → seguir DNS.
+     Veja a 🚨 Pendência crítica no topo deste arquivo.
+   - **Modo de teste atual (sem domínio):** pula essa etapa.
+     `EMAIL_FROM=Nexa <onboarding@resend.dev>` envia SÓ pro e-mail
+     da sua conta Resend (verificada no signup). Útil pra validar
+     o template e o fluxo do cron antes de comprar o domínio.
 
 #### Passo 2 — Gerar API Key
 - `API Keys` → `Create API Key`
