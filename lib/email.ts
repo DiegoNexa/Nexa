@@ -79,6 +79,13 @@ export function buildLembreteAgendamento(p: LembreteAgendamentoData) {
   const primeiroNome = p.clienteNome.trim().split(/\s+/)[0] ?? p.clienteNome;
   const subject      = `Lembrete: seu horário no ${p.salaoNome}`;
 
+  // Logo opcional via env var. Sem ela, cai no texto "Nexa".
+  // Precisa ser URL https absoluta (Supabase Storage público, p.ex.).
+  const logoUrl = process.env.EMAIL_LOGO_URL?.trim();
+  const cabecalho = logoUrl
+    ? `<img src="${logoUrl}" alt="${escapeHtml(p.salaoNome)}" width="140" style="display:block;max-width:140px;height:auto;border:0;" />`
+    : `<p style="color:#C89933;font-size:18px;font-weight:700;margin:0;letter-spacing:0.8px;">Nexa</p>`;
+
   // Versão texto puro (fallback pra clients sem HTML)
   const text = `Olá, ${primeiroNome}!
 
@@ -112,7 +119,7 @@ Lembrete enviado pela plataforma Nexa.`;
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;width:100%;background:#ffffff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;">
           <tr>
             <td style="padding:28px 32px 16px 32px;border-bottom:2px solid #C89933;">
-              <p style="color:#C89933;font-size:18px;font-weight:700;margin:0;letter-spacing:0.8px;">Nexa</p>
+              ${cabecalho}
             </td>
           </tr>
           <tr>
