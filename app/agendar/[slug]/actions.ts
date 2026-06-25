@@ -5,9 +5,15 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { mapErroAgendamentoPublico } from "@/lib/agendar-publico";
 
+// Selects vazios/desabilitados chegam como null no FormData. O preprocess
+// converte null -> "" pra cair na mensagem amigável do uuid em vez do
+// erro técnico do Zod ("expected string, received null").
+const selectObrigatorio = (msg: string) =>
+  z.preprocess((v) => (typeof v === "string" ? v : ""), z.string().uuid(msg));
+
 const schema = z.object({
-  servico_id:        z.string().uuid("Selecione um serviço"),
-  profissional_id:   z.string().uuid("Selecione um profissional"),
+  servico_id:        selectObrigatorio("Selecione um serviço"),
+  profissional_id:   selectObrigatorio("Selecione um profissional"),
   cliente_nome:      z.string().trim().min(2, "Nome muito curto").max(100),
   cliente_telefone:  z.string().regex(/^\d{10,11}$/, "Telefone inválido (DDD + número)"),
   cliente_email:     z.preprocess(

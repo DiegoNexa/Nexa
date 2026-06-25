@@ -6,10 +6,16 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 // ─── Schema de criação ─────────────────────────────────────
+// Selects vazios/desabilitados chegam como null no FormData. O preprocess
+// converte null -> "" pra cair na mensagem amigável do uuid em vez do
+// erro técnico do Zod ("expected string, received null").
+const selectObrigatorio = (msg: string) =>
+  z.preprocess((v) => (typeof v === "string" ? v : ""), z.string().uuid(msg));
+
 const criarSchema = z.object({
-  cliente_id:        z.string().uuid("Cliente inválido"),
-  profissional_id:   z.string().uuid("Profissional inválido"),
-  servico_id:        z.string().uuid("Serviço inválido"),
+  cliente_id:        selectObrigatorio("Selecione um cliente"),
+  profissional_id:   selectObrigatorio("Selecione um profissional"),
+  servico_id:        selectObrigatorio("Selecione um serviço"),
   data_hora_inicio:  z.string().regex(
     /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/,
     "Data/hora inválida",
