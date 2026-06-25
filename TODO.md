@@ -35,6 +35,32 @@ Sem essa troca, **os clientes reais nunca receberão o lembrete**
 - `.com` — Cloudflare, ~US$ 10/ano (mais barato)
 - Outros — variável
 
+**Antes de comprar:** verificar na Central do Cliente do HostGator
+se já existe um domínio ativo (pode já ter DNS gerenciável lá).
+
+---
+
+## 📌 Etapa Email/Logo — pendências anotadas (jun/2026)
+
+Ordem de prioridade pra finalizar a parte de email:
+
+1. **Domínio** (destrava tudo) — checar HostGator ou comprar (~R$40/ano).
+   Sem ele, lembrete só chega no `daniediegozulin@gmail.com` (modo teste).
+2. **Logo DENTRO do email** (independe de domínio, pode fazer já):
+   - Supabase → Storage → New bucket `publico` (marcar **Public**)
+   - Upload da logo (PNG transparente, ~400px, <200KB)
+   - Copiar URL pública → colar no `.env.local` como `EMAIL_LOGO_URL=...`
+   - Adicionar a mesma var na Vercel (produção)
+   - Código já pronto ([lib/email.ts](lib/email.ts)) — sem a var, cai no texto "Nexa".
+3. **EMAIL_FROM** → trocar pra domínio próprio (passos na seção acima).
+4. **BIMI** (foto redonda do remetente no Gmail) — POR ÚLTIMO. Exige
+   domínio + DMARC + logo SVG + às vezes VMC pago. Impossível com
+   `onboarding@resend.dev`.
+
+**Conferir migrations aplicadas no Supabase:** 013, 014, 015, 016
+(015 e 016 já aplicadas nos testes; confirmar 013 e 014 senão o
+link público quebra).
+
 ---
 
 ## 🔮 Funcionalidades adiadas (não vão no v1.0)
