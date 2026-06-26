@@ -131,6 +131,19 @@ git push
 
 ## 📋 Outras pendências pré-deploy
 
+### ⏳ Aplicar migration 017 no Supabase (mais recente — Estoque)
+Cria as tabelas `produtos` e `movimentos_estoque` (com RLS via
+`current_salao_id()`) e a função `registrar_movimento_estoque()`
+que aplica entrada/saída de forma atômica e bloqueia estoque negativo.
+Base do Pilar 3 (Gestão de Estoque).
+Conteúdo em [`supabase/migrations/017_estoque.sql`](supabase/migrations/017_estoque.sql).
+SQL Editor → cole → Run.
+
+> **Pendente do Pilar 3 (fase 2):** baixa automática de estoque ao
+> concluir um serviço. Exige vínculo serviço × produto (quanto de cada
+> produto um serviço consome) — migration + UI próprias. Hoje a baixa
+> é manual (botão Saída na tela do produto).
+
 ### ⏳ Aplicar migration 016 no Supabase (mais recente)
 Cria funções `listar_lembretes_pendentes()` e `marcar_lembrete_enviado(id)`
 SECURITY DEFINER que o cron usa. Resolve o erro "permission denied for

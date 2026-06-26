@@ -25,7 +25,7 @@ const NAV: NavItem[] = [
   { href: "/profissionais",  label: "Profissionais", icon: "content_cut",      enabled: true  },
   { href: "/servicos",       label: "Serviços",      icon: "design_services",  enabled: true  },
   { href: "/folha-pagamento",label: "Folha",         icon: "receipt_long",     enabled: true  },
-  { href: "/estoque",        label: "Estoque",       icon: "inventory_2",      enabled: false },
+  { href: "/estoque",        label: "Estoque",       icon: "inventory_2",      enabled: true  },
   { href: "/financeiro",     label: "Financeiro",    icon: "payments",         enabled: false },
   { href: "/configuracoes",  label: "Configurações", icon: "settings",         enabled: false },
 ];

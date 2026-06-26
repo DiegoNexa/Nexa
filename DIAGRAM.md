@@ -292,6 +292,29 @@ erDiagram
         timestamp created_at
     }
 
+    produtos {
+        uuid id PK
+        uuid salao_id FK
+        string nome
+        text descricao
+        string unidade
+        decimal quantidade
+        decimal quantidade_minima
+        decimal preco_custo
+        boolean ativo
+        timestamp created_at
+    }
+
+    movimentos_estoque {
+        uuid id PK
+        uuid produto_id FK
+        string tipo
+        decimal quantidade
+        text motivo
+        uuid created_by FK
+        timestamp created_at
+    }
+
     saloes ||--o{ usuarios : ""
     saloes ||--o{ profissionais : ""
     saloes ||--o{ clientes : ""
@@ -307,6 +330,7 @@ erDiagram
     servicos ||--o{ agendamentos : ""
     agendamentos ||--o{ consumo_produtos : ""
     produtos ||--o{ consumo_produtos : ""
+    produtos ||--o{ movimentos_estoque : ""
 ```
 
 ---
