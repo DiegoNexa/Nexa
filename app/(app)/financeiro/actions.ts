@@ -16,6 +16,8 @@ const despesaSchema = z.object({
   categoria:    z.enum(CATEGORIAS, { message: "Categoria inválida" }),
   valor:        valorSchema,
   data_despesa: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
+  // "nao" = despesa única | "mensal"/"semanal" = cria molde recorrente
+  repeticao:    z.enum(["nao", "mensal", "semanal"]).default("nao"),
 });
 
 export type DespesaState = {
@@ -33,6 +35,7 @@ export async function criarDespesa(
     categoria:    formData.get("categoria"),
     valor:        formData.get("valor"),
     data_despesa: formData.get("data_despesa"),
+    repeticao:    formData.get("repeticao") ?? "nao",
   });
 
   if (!parsed.success) {
@@ -56,23 +59,69 @@ export async function criarDespesa(
 
   if (!u) return { ok: false, message: "Sua conta não está vinculada a um salão." };
 
-  const { error } = await supabase.from("despesas").insert({
-    salao_id:     u.salao_id,
-    descricao:    parsed.data.descricao,
-    categoria:    parsed.data.categoria,
-    valor:        parsed.data.valor,
-    data_despesa: parsed.data.data_despesa,
-    created_by:   user.id,
+  // ── Despesa única ────────────────────────────────────────
+  if (parsed.data.repeticao === "nao") {
+    const { error } = await supabase.from("despesas").insert({
+      salao_id:     u.salao_id,
+      descricao:    parsed.data.descricao,
+      categoria:    parsed.data.categoria,
+      valor:        parsed.data.valor,
+      data_despesa: parsed.data.data_despesa,
+      created_by:   user.id,
+    });
+
+    if (error) return { ok: false, message: error.message };
+
+    revalidatePath("/financeiro");
+    return { ok: true, message: "Despesa registrada." };
+  }
+
+  // ── Despesa recorrente (molde) ───────────────────────────
+  // dia_mes / dia_semana derivados da data escolhida. Interpretamos
+  // a data como UTC pra evitar shift de fuso.
+  const [ano, mes, dia] = parsed.data.data_despesa.split("-").map(Number);
+  const d = new Date(Date.UTC(ano, mes - 1, dia));
+  const mensal = parsed.data.repeticao === "mensal";
+
+  const { error: recErr } = await supabase.from("despesas_recorrentes").insert({
+    salao_id:    u.salao_id,
+    descricao:   parsed.data.descricao,
+    categoria:   parsed.data.categoria,
+    valor:       parsed.data.valor,
+    frequencia:  parsed.data.repeticao,
+    dia_mes:     mensal ? Math.min(dia, 28) : null,   // até dia 28 (existe em todo mês)
+    dia_semana:  mensal ? null : d.getUTCDay(),        // 0=domingo
+    data_inicio: parsed.data.data_despesa,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (recErr) return { ok: false, message: recErr.message };
+
+  // Materializa imediatamente as ocorrências do mês da data escolhida
+  const inicioMes = `${ano}-${String(mes).padStart(2, "0")}-01`;
+  const proxMes   = new Date(Date.UTC(ano, mes, 1)).toISOString().slice(0, 10);
+  await supabase.rpc("gerar_despesas_recorrentes", { p_inicio: inicioMes, p_fim: proxMes });
 
   revalidatePath("/financeiro");
-  return { ok: true, message: "Despesa registrada." };
+  return {
+    ok: true,
+    message: mensal ? "Despesa fixa mensal criada." : "Despesa fixa semanal criada.",
+  };
 }
 
 export async function excluirDespesa(id: string): Promise<void> {
   const supabase = await createClient();
   await supabase.from("despesas").delete().eq("id", id);
+  revalidatePath("/financeiro");
+}
+
+/**
+ * Para um molde de despesa recorrente (soft-delete via ativo=false).
+ * As ocorrências já lançadas no histórico permanecem intactas — só
+ * as futuras deixam de ser geradas. Manter a linha (em vez de apagar)
+ * preserva o log de competências e evita regenerar meses antigos.
+ */
+export async function excluirRecorrente(id: string): Promise<void> {
+  const supabase = await createClient();
+  await supabase.from("despesas_recorrentes").update({ ativo: false }).eq("id", id);
   revalidatePath("/financeiro");
 }

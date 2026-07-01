@@ -25,7 +25,18 @@ export function DespesaItem({ despesa }: { despesa: Despesa }) {
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-on-surface truncate">{despesa.descricao}</p>
+        <p className="text-sm font-medium text-on-surface truncate flex items-center gap-1">
+          {despesa.recorrente_id && (
+            <span
+              className="material-symbols-outlined text-primary flex-shrink-0"
+              title="Despesa fixa (recorrente)"
+              style={{ fontSize: "14px" }}
+            >
+              repeat
+            </span>
+          )}
+          <span className="truncate">{despesa.descricao}</span>
+        </p>
         <p className="text-xs text-on-surface-variant">
           {CATEGORIA_LABEL[despesa.categoria]} · {fmtData(despesa.data_despesa)}
         </p>

@@ -102,6 +102,29 @@ export function DespesaForm() {
         </div>
       </div>
 
+      {/* Repetição */}
+      <div className="relative">
+        <select
+          name="repeticao"
+          defaultValue="nao"
+          className="w-full appearance-none px-4 py-3 pr-10 rounded-xl text-sm focus:outline-none transition-all-custom text-on-surface"
+          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
+        >
+          <option value="nao"     style={{ color: "#000", background: "#fff" }}>Não repete (única)</option>
+          <option value="mensal"  style={{ color: "#000", background: "#fff" }}>Repete todo mês (fixa)</option>
+          <option value="semanal" style={{ color: "#000", background: "#fff" }}>Repete toda semana (fixa)</option>
+        </select>
+        <span
+          className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant"
+          style={{ fontSize: "20px" }}
+        >
+          repeat
+        </span>
+      </div>
+      <p className="text-[11px] text-on-surface-variant -mt-1">
+        Fixas (aluguel, contas) usam o dia/dia-da-semana da data acima e aparecem automaticamente todo período.
+      </p>
+
       {(state.fieldErrors?.valor || state.fieldErrors?.data_despesa) && (
         <p className="text-xs" style={{ color: "var(--color-error)" }}>
           {state.fieldErrors?.valor ?? state.fieldErrors?.data_despesa}

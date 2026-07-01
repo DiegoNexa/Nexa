@@ -131,6 +131,15 @@ git push
 
 ## 📋 Outras pendências pré-deploy
 
+### ⏳ Aplicar migration 019 no Supabase (mais recente — Despesas recorrentes)
+Cria `despesas_recorrentes` (moldes fixos mensal/semanal),
+`despesas_recorrentes_log` (idempotência) e a função
+`gerar_despesas_recorrentes(inicio, fim)` que materializa as
+ocorrências do mês visualizado. A coluna `despesas.recorrente_id`
+liga a ocorrência ao molde.
+Conteúdo em [`supabase/migrations/019_despesas_recorrentes.sql`](supabase/migrations/019_despesas_recorrentes.sql).
+SQL Editor → cole → Run. **Aplicar depois da 018.**
+
 ### ⏳ Aplicar migration 018 no Supabase (mais recente — Financeiro)
 Cria a tabela `despesas` (descrição, categoria, valor, data) com RLS
 via `current_salao_id()`. Base do Pilar 5 (Gestão Financeira). O

@@ -2,8 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { MesSelector } from "@/components/folha-pagamento/mes-selector";
 import { DespesaForm } from "@/components/financeiro/despesa-form";
 import { DespesaItem } from "@/components/financeiro/despesa-item";
+import { RecorrenteItem } from "@/components/financeiro/recorrente-item";
 import { BRL, parseMesParam } from "@/lib/folha-pagamento";
-import { carregarFinanceiro, CATEGORIA_LABEL } from "@/lib/financeiro";
+import { carregarFinanceiro, carregarRecorrentes, CATEGORIA_LABEL } from "@/lib/financeiro";
 
 type Props = { searchParams: Promise<{ mes?: string }> };
 
@@ -12,7 +13,19 @@ export default async function FinanceiroPage({ searchParams }: Props) {
   const periodo = parseMesParam(mes);
 
   const supabase = await createClient();
-  const fin = await carregarFinanceiro(supabase, periodo);
+
+  // Materializa as despesas recorrentes do mês visualizado (idempotente).
+  // O log em despesas_recorrentes_log evita duplicar ou "ressuscitar"
+  // uma ocorrência que o usuário tenha apagado.
+  await supabase.rpc("gerar_despesas_recorrentes", {
+    p_inicio: periodo.inicio,
+    p_fim:    periodo.fim,
+  });
+
+  const [fin, recorrentes] = await Promise.all([
+    carregarFinanceiro(supabase, periodo),
+    carregarRecorrentes(supabase),
+  ]);
 
   const lucroPositivo = fin.lucro >= 0;
   const mesParam = periodo.inicio.slice(0, 7);
@@ -101,6 +114,18 @@ export default async function FinanceiroPage({ searchParams }: Props) {
         <section className="glass-card rounded-2xl p-5 h-fit">
           <h2 className="text-sm font-semibold text-on-surface mb-3">Registrar despesa</h2>
           <DespesaForm />
+
+          {recorrentes.length > 0 && (
+            <div className="mt-5 pt-4 border-t" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+              <p className="text-xs uppercase tracking-wider text-outline mb-1">Despesas fixas</p>
+              <div className="divide-y" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+                {recorrentes.map((r) => (
+                  <RecorrenteItem key={r.id} recorrente={r} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {fin.despesas.porCategoria.length > 0 && (
             <div className="mt-5 pt-4 border-t" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
               <p className="text-xs uppercase tracking-wider text-outline mb-2">Por categoria</p>

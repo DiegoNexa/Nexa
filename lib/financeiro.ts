@@ -18,12 +18,46 @@ export type CategoriaDespesa =
   | "aluguel" | "produtos" | "contas" | "equipamentos" | "marketing" | "impostos" | "outros";
 
 export type Despesa = {
-  id:           string;
-  descricao:    string;
-  categoria:    CategoriaDespesa;
-  valor:        number;
-  data_despesa: string;   // YYYY-MM-DD
+  id:            string;
+  descricao:     string;
+  categoria:     CategoriaDespesa;
+  valor:         number;
+  data_despesa:  string;   // YYYY-MM-DD
+  recorrente_id: string | null;   // preenchido se veio de uma despesa fixa
 };
+
+export type Frequencia = "mensal" | "semanal";
+
+export type DespesaRecorrente = {
+  id:         string;
+  descricao:  string;
+  categoria:  CategoriaDespesa;
+  valor:      number;
+  frequencia: Frequencia;
+  dia_mes:    number | null;
+  dia_semana: number | null;
+};
+
+const DIAS_SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+
+/** Descreve a recorrência em texto: "todo mês (dia 5)" / "toda semana (segunda)" */
+export function descreverRecorrencia(r: DespesaRecorrente): string {
+  if (r.frequencia === "mensal") return `todo mês · dia ${r.dia_mes}`;
+  return `toda semana · ${DIAS_SEMANA[r.dia_semana ?? 0]}`;
+}
+
+/** Carrega os moldes de despesa recorrente ativos do salão */
+export async function carregarRecorrentes(
+  supabase: SupabaseClient,
+): Promise<DespesaRecorrente[]> {
+  const { data } = await supabase
+    .from("despesas_recorrentes")
+    .select("id, descricao, categoria, valor, frequencia, dia_mes, dia_semana")
+    .eq("ativo", true)
+    .order("descricao")
+    .returns<DespesaRecorrente[]>();
+  return data ?? [];
+}
 
 export type FinanceiroResumo = {
   periodo: { inicio: string; fim: string; label: string };
@@ -89,7 +123,7 @@ export async function carregarFinanceiro(
   // 3. Despesas do período
   const { data: desp } = await supabase
     .from("despesas")
-    .select("id, descricao, categoria, valor, data_despesa")
+    .select("id, descricao, categoria, valor, data_despesa, recorrente_id")
     .gte("data_despesa", periodo.inicio)
     .lt("data_despesa", periodo.fim)
     .order("data_despesa", { ascending: false })
