@@ -131,6 +131,14 @@ git push
 
 ## 📋 Outras pendências pré-deploy
 
+### ⏳ Aplicar migration 018 no Supabase (mais recente — Financeiro)
+Cria a tabela `despesas` (descrição, categoria, valor, data) com RLS
+via `current_salao_id()`. Base do Pilar 5 (Gestão Financeira). O
+resultado do mês (faturamento − folha − despesas = lucro) é montado
+no app reutilizando o cálculo da folha.
+Conteúdo em [`supabase/migrations/018_despesas.sql`](supabase/migrations/018_despesas.sql).
+SQL Editor → cole → Run.
+
 ### ⏳ Aplicar migration 017 no Supabase (mais recente — Estoque)
 Cria as tabelas `produtos` e `movimentos_estoque` (com RLS via
 `current_salao_id()`) e a função `registrar_movimento_estoque()`

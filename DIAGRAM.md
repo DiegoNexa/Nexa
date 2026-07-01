@@ -315,6 +315,17 @@ erDiagram
         timestamp created_at
     }
 
+    despesas {
+        uuid id PK
+        uuid salao_id FK
+        string descricao
+        string categoria
+        decimal valor
+        date data_despesa
+        uuid created_by FK
+        timestamp created_at
+    }
+
     saloes ||--o{ usuarios : ""
     saloes ||--o{ profissionais : ""
     saloes ||--o{ clientes : ""
