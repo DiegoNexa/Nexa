@@ -192,7 +192,7 @@ export default async function DashboardPage() {
               <a href="/estoque" className="text-xs text-primary hover:underline">Estoque →</a>
             </div>
             {produtosBaixos.length === 0 ? (
-              <p className="text-sm text-on-surface-variant py-2">Nenhum produto em alerta. 👍</p>
+              <p className="text-sm text-on-surface-variant py-2">Nenhum produto em alerta.</p>
             ) : (
               <div className="space-y-2">
                 {produtosBaixos.slice(0, 6).map((p) => (

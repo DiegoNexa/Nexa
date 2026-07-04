@@ -91,9 +91,9 @@ export function buildLembreteAgendamento(p: LembreteAgendamentoData) {
 
 Seu horário está confirmado para:
 
-📅 ${p.data} às ${p.horario}
-💼 ${p.servico}
-👤 ${p.profissional}
+Data: ${p.data} às ${p.horario}
+Serviço: ${p.servico}
+Profissional: ${p.profissional}
 
 Estamos prontos para receber você. Caso não possa comparecer, pedimos que nos avise antecipadamente.
 
@@ -128,9 +128,9 @@ Lembrete enviado pela plataforma Nexa.`;
               <p style="font-size:15px;margin:0 0 20px 0;color:#1D1A05;line-height:1.5;">Seu horário está confirmado para:</p>
 
               <div style="background:#faf8f3;border-left:4px solid #C89933;padding:16px 20px;margin:0 0 24px 0;border-radius:8px;">
-                <p style="margin:6px 0;font-size:14px;color:#1D1A05;line-height:1.6;">📅 <strong>${escapeHtml(p.data)}</strong> às <strong>${escapeHtml(p.horario)}</strong></p>
-                <p style="margin:6px 0;font-size:14px;color:#1D1A05;line-height:1.6;">💼 <strong>${escapeHtml(p.servico)}</strong></p>
-                <p style="margin:6px 0;font-size:14px;color:#1D1A05;line-height:1.6;">👤 <strong>${escapeHtml(p.profissional)}</strong></p>
+                <p style="margin:6px 0;font-size:14px;color:#1D1A05;line-height:1.6;"><span style="color:#6B6B6B;">Data:</span> <strong>${escapeHtml(p.data)}</strong> às <strong>${escapeHtml(p.horario)}</strong></p>
+                <p style="margin:6px 0;font-size:14px;color:#1D1A05;line-height:1.6;"><span style="color:#6B6B6B;">Serviço:</span> <strong>${escapeHtml(p.servico)}</strong></p>
+                <p style="margin:6px 0;font-size:14px;color:#1D1A05;line-height:1.6;"><span style="color:#6B6B6B;">Profissional:</span> <strong>${escapeHtml(p.profissional)}</strong></p>
               </div>
 
               <p style="font-size:14px;margin:0 0 18px 0;color:#1D1A05;line-height:1.6;">Estamos prontos para receber você. Caso não possa comparecer, pedimos que nos avise antecipadamente.</p>
