@@ -158,3 +158,57 @@ export async function alternarAtivoServico(id: string, ativoAtual: boolean): Pro
   await supabase.from("servicos").update({ ativo: !ativoAtual }).eq("id", id);
   revalidatePath("/servicos");
 }
+
+// ─── Consumo de produtos (baixa automática) ────────────────
+export type ConsumoState = { ok: boolean; message?: string };
+
+/**
+ * Salva quanto de cada produto o serviço consome. Campo vazio ou
+ * inválido remove o vínculo; valor > 0 faz upsert. A baixa em si
+ * acontece ao concluir o agendamento (função SQL sincronizar).
+ */
+export async function salvarConsumo(
+  servicoId: string,
+  _prev: ConsumoState,
+  formData: FormData,
+): Promise<ConsumoState> {
+  const supabase = await createClient();
+
+  const { data: produtos } = await supabase
+    .from("produtos")
+    .select("id")
+    .eq("ativo", true)
+    .returns<{ id: string }[]>();
+
+  const upserts: { servico_id: string; produto_id: string; quantidade: number }[] = [];
+  const remover: string[] = [];
+
+  for (const p of produtos ?? []) {
+    const raw = formData.get(`consumo_${p.id}`);
+    const str = typeof raw === "string" ? raw.replace(",", ".").trim() : "";
+    const num = Number(str);
+    if (str === "" || !Number.isFinite(num) || num <= 0) {
+      remover.push(p.id);
+    } else {
+      upserts.push({ servico_id: servicoId, produto_id: p.id, quantidade: num });
+    }
+  }
+
+  if (remover.length > 0) {
+    await supabase
+      .from("servico_produtos")
+      .delete()
+      .eq("servico_id", servicoId)
+      .in("produto_id", remover);
+  }
+
+  if (upserts.length > 0) {
+    const { error } = await supabase
+      .from("servico_produtos")
+      .upsert(upserts, { onConflict: "servico_id,produto_id" });
+    if (error) return { ok: false, message: error.message };
+  }
+
+  revalidatePath(`/servicos/${servicoId}`);
+  return { ok: true, message: "Consumo de produtos salvo." };
+}

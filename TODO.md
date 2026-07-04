@@ -131,6 +131,15 @@ git push
 
 ## 📋 Outras pendências pré-deploy
 
+### ⏳ Aplicar migration 020 no Supabase (mais recente — Baixa automática de estoque)
+Cria `servico_produtos` (receita de consumo), a flag
+`agendamentos.estoque_baixado`, a coluna `movimentos_estoque.agendamento_id`
+e a função `sincronizar_estoque_agendamento(id)`. Ao concluir um
+agendamento, o estoque dos produtos do serviço é debitado; ao
+reverter, é estornado. Completa o Pilar 3 (fase 2).
+Conteúdo em [`supabase/migrations/020_baixa_automatica_estoque.sql`](supabase/migrations/020_baixa_automatica_estoque.sql).
+SQL Editor → cole → Run. **Aplicar depois da 017.**
+
 ### ⏳ Aplicar migration 019 no Supabase (mais recente — Despesas recorrentes)
 Cria `despesas_recorrentes` (moldes fixos mensal/semanal),
 `despesas_recorrentes_log` (idempotência) e a função
