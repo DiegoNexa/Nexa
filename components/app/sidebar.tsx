@@ -27,7 +27,7 @@ const NAV: NavItem[] = [
   { href: "/folha-pagamento",label: "Folha",         icon: "receipt_long",     enabled: true  },
   { href: "/estoque",        label: "Estoque",       icon: "inventory_2",      enabled: true  },
   { href: "/financeiro",     label: "Financeiro",    icon: "payments",         enabled: true  },
-  { href: "/configuracoes",  label: "Configurações", icon: "settings",         enabled: false },
+  { href: "/configuracoes",  label: "Configurações", icon: "settings",         enabled: true  },
 ];
 
 export function Sidebar({ primeiroNome, nomeSalao, logoutForm }: SidebarProps) {
