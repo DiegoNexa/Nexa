@@ -23,6 +23,8 @@ const NAV: NavItem[] = [
   { href: "/agenda",         label: "Agenda",        icon: "calendar_today",   enabled: true  },
   { href: "/clientes",       label: "Clientes",      icon: "groups",           enabled: true  },
   { href: "/profissionais",  label: "Profissionais", icon: "content_cut",      enabled: true  },
+  { href: "/carga-horaria",  label: "Carga horária", icon: "schedule",         enabled: true  },
+  { href: "/ranking",        label: "Ranking",       icon: "leaderboard",      enabled: true  },
   { href: "/servicos",       label: "Serviços",      icon: "design_services",  enabled: true  },
   { href: "/folha-pagamento",label: "Folha",         icon: "receipt_long",     enabled: true  },
   { href: "/estoque",        label: "Estoque",       icon: "inventory_2",      enabled: true  },

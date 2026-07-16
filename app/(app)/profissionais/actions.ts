@@ -250,6 +250,7 @@ export async function salvarCargaHoraria(
   }
 
   revalidatePath(`/profissionais/${profissionalId}`);
+  revalidatePath("/carga-horaria");
   return { ok: true, message: "Carga horária salva." };
 }
 
