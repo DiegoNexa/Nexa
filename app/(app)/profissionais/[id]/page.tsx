@@ -155,7 +155,7 @@ export default async function EditarProfissionalPage({ params }: Props) {
       {/* Seção 2: Carga horária */}
       <Section title="Carga horária" icon="schedule">
         <p className="text-sm text-on-surface-variant mb-4">
-          Marque os dias da semana em que o profissional trabalha e defina o horário de início e fim.
+          Marque os dias em que o profissional trabalha e deixe em branco suas respectivas folgas.
         </p>
         <CargaHorariaForm profissionalId={profissional.id} initial={cargaHoraria ?? []} />
       </Section>

@@ -1,15 +1,20 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { HoverButton } from "@/components/ui/hover-button";
 import type { ProfissionalState } from "@/app/(app)/profissionais/actions";
 
 const initialState: ProfissionalState = { ok: false };
 
+// Paleta ampla pra dar liberdade de escolha (+ seletor livre ao lado)
 const CORES_SUGERIDAS = [
   "#C89933", "#E8D080", "#8B6B1F",  // dourados (linha Nexa)
-  "#3B82F6", "#10B981", "#EF4444",  // azul, verde, vermelho
-  "#A855F7", "#EC4899", "#F97316",  // roxo, rosa, laranja
+  "#EF4444", "#F43F5E", "#EC4899",  // vermelho, rosa-vermelho, rosa
+  "#F97316", "#F59E0B", "#FACC15",  // laranja, âmbar, amarelo
+  "#22C55E", "#10B981", "#14B8A6",  // verde, esmeralda, teal
+  "#06B6D4", "#0EA5E9", "#3B82F6",  // ciano, azul-céu, azul
+  "#6366F1", "#8B5CF6", "#A855F7",  // índigo, violeta, roxo
+  "#64748B", "#78716C", "#F8FAFC",  // ardósia, pedra, branco
 ];
 
 type ProfissionalFormProps = {
@@ -40,6 +45,9 @@ export function ProfissionalForm({
   const initCor      = v("cor")             || initial?.cor             || "#C89933";
   const initComissao = v("comissao_padrao") || initial?.comissao_padrao?.toString() || "50";
   const initSalario  = v("salario_fixo")    || initial?.salario_fixo?.toString().replace(".", ",") || "0";
+
+  // Cor controlada — seletor livre e swatches ficam sempre em sincronia
+  const [cor, setCor] = useState(initCor);
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
@@ -96,34 +104,65 @@ export function ProfissionalForm({
         <label htmlFor="cor" className="block text-sm font-medium text-on-surface mb-1.5">
           Cor no calendário <span className="text-outline">(opcional)</span>
         </label>
-        <div className="flex items-center gap-3">
-          <input
-            id="cor"
-            name="cor"
-            type="color"
-            defaultValue={initCor}
-            className="h-12 w-16 rounded-xl cursor-pointer flex-shrink-0"
+        <input type="hidden" name="cor" value={cor} />
+        <div className="flex items-start gap-3">
+          {/* Seletor livre (qualquer cor) + preview */}
+          <label
+            className="relative h-12 w-16 rounded-xl cursor-pointer flex-shrink-0 overflow-hidden"
             style={{
-              background: "transparent",
+              background: cor,
               border: state.fieldErrors?.cor
                 ? "1px solid var(--color-error)"
-                : "1px solid rgba(255,255,255,0.1)",
+                : "1px solid rgba(255,255,255,0.15)",
             }}
-          />
+            title="Escolher qualquer cor"
+          >
+            <input
+              id="cor"
+              type="color"
+              value={cor}
+              onChange={(e) => setCor(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              aria-label="Seletor de cor livre"
+            />
+            <span
+              className="material-symbols-outlined absolute bottom-1 right-1 text-white/90 pointer-events-none"
+              style={{ fontSize: "16px", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}
+            >
+              colorize
+            </span>
+          </label>
+
+          {/* Paleta de sugestões */}
           <div className="flex flex-wrap gap-2">
-            {CORES_SUGERIDAS.map((cor) => (
-              <button
-                key={cor}
-                type="button"
-                aria-label={`Cor ${cor}`}
-                onClick={(e) => {
-                  const input = (e.currentTarget.parentElement?.previousElementSibling as HTMLInputElement | null);
-                  if (input) input.value = cor;
-                }}
-                className="w-7 h-7 rounded-full cursor-pointer transition-transform hover:scale-110"
-                style={{ background: cor, border: "1px solid rgba(255,255,255,0.2)" }}
-              />
-            ))}
+            {CORES_SUGERIDAS.map((c) => {
+              const ativo = c.toLowerCase() === cor.toLowerCase();
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  aria-label={`Cor ${c}`}
+                  aria-pressed={ativo}
+                  onClick={() => setCor(c)}
+                  className="w-7 h-7 rounded-full cursor-pointer transition-transform hover:scale-110 flex items-center justify-center"
+                  style={{
+                    background: c,
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    outline: ativo ? "2px solid var(--color-primary)" : "none",
+                    outlineOffset: "2px",
+                  }}
+                >
+                  {ativo && (
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: "16px", color: c === "#F8FAFC" ? "#1D1A05" : "#fff" }}
+                    >
+                      check
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
         {state.fieldErrors?.cor && (

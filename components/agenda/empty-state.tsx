@@ -25,19 +25,15 @@ export function AgendaEmptyState() {
       </p>
 
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <GoldBorderButton href="/profissionais" className="opacity-60 cursor-not-allowed pointer-events-none">
+        <GoldBorderButton href="/profissionais/novo">
           <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>content_cut</span>
           Cadastrar profissionais
         </GoldBorderButton>
-        <GoldBorderButton href="/servicos" className="opacity-60 cursor-not-allowed pointer-events-none">
+        <GoldBorderButton href="/servicos/novo">
           <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>design_services</span>
           Cadastrar serviços
         </GoldBorderButton>
       </div>
-
-      <p className="text-xs text-outline mt-6">
-        Cadastros estarão disponíveis na próxima atualização
-      </p>
     </div>
   );
 }
