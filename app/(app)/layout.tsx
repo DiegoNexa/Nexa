@@ -54,23 +54,7 @@ export default async function AppLayout({
       <Sidebar
         primeiroNome={primeiroNome}
         nomeSalao={nomeSalao}
-        logoutForm={
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-on-surface-variant hover:text-on-surface transition-all-custom"
-              style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>
-                logout
-              </span>
-              Sair
-            </button>
-          </form>
-        }
+        logoutAction={logoutAction}
       />
 
       <main className="flex-1 min-w-0">

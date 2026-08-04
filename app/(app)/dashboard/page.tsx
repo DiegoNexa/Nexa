@@ -248,17 +248,21 @@ function KpiCard({
   return (
     <a
       href={href}
-      className="glass-card rounded-2xl p-4 hover:bg-white/5 transition-all-custom block"
+      className="glass-card rounded-2xl p-4 md:p-5 hover:bg-white/5 transition-all-custom block"
       style={destaque ? { border: `1px solid ${cor}55` } : undefined}
     >
-      <div className="flex items-center gap-2 mb-2">
-        <span className="material-symbols-outlined" style={{ fontSize: "18px", color: cor }}>{icon}</span>
-        <span className="text-[10px] uppercase tracking-wider text-outline">{label}</span>
+      {/* Caixa de ícone colorida (estilo stat card) */}
+      <div
+        className="flex items-center justify-center rounded-xl mb-3"
+        style={{ width: 40, height: 40, background: `${cor}1F` }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: "20px", color: cor }}>{icon}</span>
       </div>
-      <p className="text-lg md:text-xl font-bold" style={{ color: destaque ? cor : "var(--color-on-surface)" }}>
+      <p className="text-[11px] uppercase tracking-wider text-outline mb-1">{label}</p>
+      <p className="text-xl md:text-2xl font-bold" style={{ color: destaque ? cor : "var(--color-on-surface)" }}>
         {valor}
       </p>
-      {extra && <p className="text-[11px] text-on-surface-variant mt-0.5">{extra}</p>}
+      {extra && <p className="text-[11px] text-on-surface-variant mt-1">{extra}</p>}
     </a>
   );
 }
