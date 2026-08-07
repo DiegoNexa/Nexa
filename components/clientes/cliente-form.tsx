@@ -40,7 +40,6 @@ export function ClienteForm({
       <Field
         label="Nome completo"
         name="nome"
-        placeholder="Ex: Maria Silva"
         defaultValue={initNome}
         error={state.fieldErrors?.nome}
         required

@@ -264,7 +264,6 @@ export function AgendamentoForm({
           name="observacoes"
           rows={3}
           maxLength={500}
-          placeholder="Ex: cliente prefere química mais leve, pediu pra chegar 10min antes..."
           defaultValue={state.values?.observacoes ?? ""}
           className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all-custom text-on-surface placeholder-on-surface-variant resize-none"
           style={{

@@ -32,7 +32,7 @@ export function DespesaForm() {
           type="text"
           required
           maxLength={120}
-          placeholder="Descrição (ex: Aluguel de julho)"
+          placeholder="Descrição"
           aria-invalid={state.fieldErrors?.descricao ? "true" : undefined}
           className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all-custom text-on-surface placeholder-on-surface-variant"
           style={{

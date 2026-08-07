@@ -48,7 +48,6 @@ export function ProdutoForm({
       <Field
         label="Nome do produto"
         name="nome"
-        placeholder="Ex: Shampoo profissional 1L"
         defaultValue={initNome}
         error={state.fieldErrors?.nome}
       />
@@ -88,7 +87,6 @@ export function ProdutoForm({
             name="quantidade"
             type="text"
             inputMode="decimal"
-            placeholder="0"
             defaultValue={initQtd}
             error={state.fieldErrors?.quantidade}
           />
@@ -108,7 +106,6 @@ export function ProdutoForm({
           name="quantidade_minima"
           type="text"
           inputMode="decimal"
-          placeholder="0"
           defaultValue={initMin}
           error={state.fieldErrors?.quantidade_minima}
         />

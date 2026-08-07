@@ -54,7 +54,6 @@ export function ProfissionalForm({
       <Field
         label="Nome completo"
         name="nome"
-        placeholder="Ex: Ana Costa"
         defaultValue={initNome}
         error={state.fieldErrors?.nome}
         required
@@ -187,7 +186,6 @@ export function ProfissionalForm({
               name="comissao_padrao"
               type="text"
               inputMode="decimal"
-              placeholder="50"
               defaultValue={initComissao}
               required
               aria-invalid={state.fieldErrors?.comissao_padrao ? "true" : undefined}
@@ -226,7 +224,6 @@ export function ProfissionalForm({
               name="salario_fixo"
               type="text"
               inputMode="decimal"
-              placeholder="0,00"
               defaultValue={initSalario}
               required
               aria-invalid={state.fieldErrors?.salario_fixo ? "true" : undefined}

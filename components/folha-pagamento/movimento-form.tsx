@@ -91,7 +91,6 @@ export function MovimentoForm({ profissionalId }: Props) {
               name="valor"
               type="text"
               inputMode="decimal"
-              placeholder="100,00"
               required
               aria-invalid={state.fieldErrors?.valor ? "true" : undefined}
               className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all-custom text-on-surface placeholder-on-surface-variant"
@@ -137,7 +136,6 @@ export function MovimentoForm({ profissionalId }: Props) {
             id="descricao"
             name="descricao"
             type="text"
-            placeholder="Ex: vale de R$100 — pagamento Maria"
             maxLength={100}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all-custom text-on-surface placeholder-on-surface-variant"
             style={{

@@ -53,7 +53,6 @@ export function ConsumoProdutosForm({ servicoId, produtos, consumo }: Props) {
                   type="text"
                   inputMode="decimal"
                   name={`consumo_${p.id}`}
-                  placeholder="0"
                   defaultValue={atual !== undefined ? String(atual).replace(".", ",") : ""}
                   aria-label={`Consumo de ${p.nome}`}
                   className="w-full px-3 py-2 pr-10 rounded-lg text-sm text-right focus:outline-none transition-all-custom text-on-surface placeholder-on-surface-variant"

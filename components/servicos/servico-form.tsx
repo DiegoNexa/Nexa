@@ -44,7 +44,6 @@ export function ServicoForm({
       <Field
         label="Nome do serviço"
         name="nome"
-        placeholder="Ex: Corte feminino"
         defaultValue={initNome}
         error={state.fieldErrors?.nome}
       />
@@ -82,7 +81,6 @@ export function ServicoForm({
           name="duracao_minutos"
           type="number"
           inputMode="numeric"
-          placeholder="60"
           defaultValue={initDuracao}
           error={state.fieldErrors?.duracao_minutos}
           min={5}
@@ -95,7 +93,6 @@ export function ServicoForm({
           name="preco"
           type="text"
           inputMode="decimal"
-          placeholder="50,00"
           defaultValue={initPreco}
           error={state.fieldErrors?.preco}
         />

@@ -64,7 +64,7 @@ export function MovimentoForm({ produtoId, unidade }: { produtoId: string; unida
         name="motivo"
         type="text"
         maxLength={200}
-        placeholder="Motivo (opcional): compra, uso, perda..."
+        placeholder="Motivo (opcional)"
         className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all-custom text-on-surface placeholder-on-surface-variant"
         style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
       />
