@@ -154,14 +154,8 @@ export async function mudarStatusAgendamento(id: string, novoStatus: Status): Pr
     .update({ status: novoStatus })
     .eq("id", id);
 
-  // Baixa/estorno automático de estoque conforme o novo status
-  // (concluído debita os produtos do serviço; reverter estorna).
-  await supabase.rpc("sincronizar_estoque_agendamento", { p_id: id });
-
   revalidatePath("/agenda");
   revalidatePath(`/agenda/${id}`);
-  revalidatePath("/estoque");
-  revalidatePath("/dashboard");
 }
 
 // ─── Atualização de observações ────────────────────────────

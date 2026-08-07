@@ -311,16 +311,8 @@ erDiagram
         string tipo
         decimal quantidade
         text motivo
-        uuid agendamento_id FK
         uuid created_by FK
         timestamp created_at
-    }
-
-    servico_produtos {
-        uuid id PK
-        uuid servico_id FK
-        uuid produto_id FK
-        decimal quantidade
     }
 
     despesas {
@@ -347,10 +339,7 @@ erDiagram
     clientes ||--o{ agendamentos : ""
     servicos ||--o{ comissoes_config : ""
     servicos ||--o{ agendamentos : ""
-    servicos ||--o{ servico_produtos : ""
-    produtos ||--o{ servico_produtos : ""
     produtos ||--o{ movimentos_estoque : ""
-    agendamentos ||--o{ movimentos_estoque : ""
 ```
 
 ---

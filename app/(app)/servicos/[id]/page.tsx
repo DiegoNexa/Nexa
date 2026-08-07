@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ServicoForm } from "@/components/servicos/servico-form";
-import { ConsumoProdutosForm } from "@/components/servicos/consumo-produtos-form";
 import { atualizarServico } from "../actions";
 
 type Props = {
@@ -12,35 +11,19 @@ export default async function EditarServicoPage({ params }: Props) {
   const { id } = await params;
 
   const supabase = await createClient();
-  const [{ data: servico }, { data: produtos }, { data: vinculos }] = await Promise.all([
-    supabase
-      .from("servicos")
-      .select("id, nome, descricao, duracao_minutos, preco")
-      .eq("id", id)
-      .single<{
-        id:              string;
-        nome:            string;
-        descricao:       string | null;
-        duracao_minutos: number;
-        preco:           number;
-      }>(),
-    supabase
-      .from("produtos")
-      .select("id, nome, unidade")
-      .eq("ativo", true)
-      .order("nome")
-      .returns<{ id: string; nome: string; unidade: string }[]>(),
-    supabase
-      .from("servico_produtos")
-      .select("produto_id, quantidade")
-      .eq("servico_id", id)
-      .returns<{ produto_id: string; quantidade: number }[]>(),
-  ]);
+  const { data: servico } = await supabase
+    .from("servicos")
+    .select("id, nome, descricao, duracao_minutos, preco")
+    .eq("id", id)
+    .single<{
+      id:              string;
+      nome:            string;
+      descricao:       string | null;
+      duracao_minutos: number;
+      preco:           number;
+    }>();
 
   if (!servico) notFound();
-
-  const consumo: Record<string, number> = {};
-  for (const v of vinculos ?? []) consumo[v.produto_id] = v.quantidade;
 
   // Server Action curried com o id — assinatura (prev, formData) preservada
   const updateAction = atualizarServico.bind(null, servico.id);
@@ -83,12 +66,6 @@ export default async function EditarServicoPage({ params }: Props) {
         submitLabel="Salvar alterações"
         pendingLabel="Salvando..."
       />
-
-      {/* Consumo de estoque (baixa automática ao concluir) */}
-      <div className="mt-8">
-        <h2 className="text-sm font-semibold text-on-surface mb-3">Consumo de estoque</h2>
-        <ConsumoProdutosForm servicoId={servico.id} produtos={produtos ?? []} consumo={consumo} />
-      </div>
     </div>
   );
 }

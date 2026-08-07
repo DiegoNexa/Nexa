@@ -131,15 +131,6 @@ git push
 
 ## 📋 Outras pendências pré-deploy
 
-### ⏳ Aplicar migration 020 no Supabase (mais recente — Baixa automática de estoque)
-Cria `servico_produtos` (receita de consumo), a flag
-`agendamentos.estoque_baixado`, a coluna `movimentos_estoque.agendamento_id`
-e a função `sincronizar_estoque_agendamento(id)`. Ao concluir um
-agendamento, o estoque dos produtos do serviço é debitado; ao
-reverter, é estornado. Completa o Pilar 3 (fase 2).
-Conteúdo em [`supabase/migrations/020_baixa_automatica_estoque.sql`](supabase/migrations/020_baixa_automatica_estoque.sql).
-SQL Editor → cole → Run. **Aplicar depois da 017.**
-
 ### ⏳ Aplicar migration 019 no Supabase (mais recente — Despesas recorrentes)
 Cria `despesas_recorrentes` (moldes fixos mensal/semanal),
 `despesas_recorrentes_log` (idempotência) e a função
@@ -165,10 +156,10 @@ Base do Pilar 3 (Gestão de Estoque).
 Conteúdo em [`supabase/migrations/017_estoque.sql`](supabase/migrations/017_estoque.sql).
 SQL Editor → cole → Run.
 
-> **Pendente do Pilar 3 (fase 2):** baixa automática de estoque ao
-> concluir um serviço. Exige vínculo serviço × produto (quanto de cada
-> produto um serviço consome) — migration + UI próprias. Hoje a baixa
-> é manual (botão Saída na tela do produto).
+> **Baixa de estoque é manual** (por decisão de produto): use o botão
+> **Saída** na tela do produto. A baixa automática por serviço foi
+> removida por exigir pré-cálculo de consumo que raramente bate com a
+> realidade.
 
 ### ⏳ Aplicar migration 016 no Supabase (mais recente)
 Cria funções `listar_lembretes_pendentes()` e `marcar_lembrete_enviado(id)`
