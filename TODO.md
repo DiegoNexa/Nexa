@@ -224,16 +224,25 @@ EMAIL_FROM=Nexa <lembrete@seudominio.com.br>
 
 #### Passo 6 — Cron
 
-**Se está no Vercel:** já está configurado via `vercel.json`.
-Schedule `*/15 * * * *` (a cada 15 min). Funciona em Hobby/Pro.
-Vercel envia `Authorization: Bearer ${CRON_SECRET}` automaticamente.
+> ⚠️ **Vercel Hobby (grátis) só permite cron 1x/dia.** Por isso NÃO usamos
+> mais o cron do `vercel.json` (foi removido). Use um **cron externo**
+> chamando o endpoint a cada 15 min (funciona em qualquer plano).
 
-**Se NÃO está no Vercel:** use um cron externo apontando pra
-`https://seudominio.com/api/cron/lembretes` com header
-`Authorization: Bearer SEU_CRON_SECRET`. Opções:
-- cron-job.org (grátis)
-- EasyCron (grátis até 50 tasks)
-- GitHub Actions (cron via workflow + curl)
+**Cron externo (recomendado no Hobby):** aponte pra
+`https://SEU_APP.vercel.app/api/cron/lembretes` com header
+`Authorization: Bearer SEU_CRON_SECRET`, a cada 15 min. Opções grátis:
+- **cron-job.org** (mais simples): New cronjob → URL do endpoint →
+  Schedule "Every 15 minutes" → aba Advanced → Header
+  `Authorization: Bearer SEU_CRON_SECRET` → salvar.
+- EasyCron (grátis até certo limite)
+- GitHub Actions (workflow com `schedule` + `curl`)
+
+**Se um dia migrar pra Vercel Pro:** dá pra voltar a usar cron nativo
+recriando um `vercel.json`:
+```json
+{ "crons": [{ "path": "/api/cron/lembretes", "schedule": "*/15 * * * *" }] }
+```
+Nesse caso a Vercel envia o `Authorization: Bearer ${CRON_SECRET}` sozinha.
 
 #### Passo 7 — Testar
 ```bash
