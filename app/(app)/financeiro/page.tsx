@@ -14,14 +14,6 @@ export default async function FinanceiroPage({ searchParams }: Props) {
 
   const supabase = await createClient();
 
-  // Materializa as despesas recorrentes do mês visualizado (idempotente).
-  // O log em despesas_recorrentes_log evita duplicar ou "ressuscitar"
-  // uma ocorrência que o usuário tenha apagado.
-  await supabase.rpc("gerar_despesas_recorrentes", {
-    p_inicio: periodo.inicio,
-    p_fim:    periodo.fim,
-  });
-
   const [fin, recorrentes] = await Promise.all([
     carregarFinanceiro(supabase, periodo),
     carregarRecorrentes(supabase),

@@ -24,6 +24,7 @@ export type Despesa = {
   valor:         number;
   data_despesa:  string;   // YYYY-MM-DD
   recorrente_id: string | null;   // preenchido se veio de uma despesa fixa
+  virtual?:      boolean;         // true = projetada de uma recorrente (não é linha no banco)
 };
 
 export type Frequencia = "mensal" | "semanal";
@@ -44,6 +45,36 @@ const DIAS_SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta"
 export function descreverRecorrencia(r: DespesaRecorrente): string {
   if (r.frequencia === "mensal") return `todo mês · dia ${r.dia_mes}`;
   return `toda semana · ${DIAS_SEMANA[r.dia_semana ?? 0]}`;
+}
+
+/**
+ * Datas (YYYY-MM-DD) em que uma despesa recorrente ocorre dentro do
+ * mês do período, respeitando a data de início do molde.
+ * - mensal: 1 ocorrência no dia informado (até dia 28)
+ * - semanal: todas as datas do mês no dia da semana informado
+ */
+function ocorrenciasNoMes(
+  r: { frequencia: Frequencia; dia_mes: number | null; dia_semana: number | null; data_inicio: string },
+  periodo: { inicio: string; fim: string },
+): string[] {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const [ano, mes] = periodo.inicio.split("-").map(Number);   // mes 1-12
+  const limite = periodo.inicio > r.data_inicio ? periodo.inicio : r.data_inicio; // max(inicioMês, dataInício)
+  const out: string[] = [];
+
+  if (r.frequencia === "mensal" && r.dia_mes != null) {
+    const data = `${ano}-${pad(mes)}-${pad(Math.min(r.dia_mes, 28))}`;
+    if (data >= limite && data < periodo.fim) out.push(data);
+  } else if (r.frequencia === "semanal" && r.dia_semana != null) {
+    const fim = new Date(Date.UTC(ano, mes, 1));
+    for (let d = new Date(Date.UTC(ano, mes - 1, 1)); d < fim; d = new Date(d.getTime() + 86400000)) {
+      if (d.getUTCDay() === r.dia_semana) {
+        const data = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+        if (data >= limite && data < periodo.fim) out.push(data);
+      }
+    }
+  }
+  return out;
 }
 
 /** Carrega os moldes de despesa recorrente ativos do salão */
@@ -120,16 +151,45 @@ export async function carregarFinanceiro(
   );
   const folhaTotal = folhas.reduce((s, f) => s + (f?.totais.liquido ?? 0), 0);
 
-  // 3. Despesas do período
+  // 3. Despesas do período = avulsas (reais) + recorrentes projetadas
+  //    As recorrentes NÃO são materializadas no banco: projetamos as
+  //    ocorrências do mês na hora, garantindo que sempre entrem no
+  //    total (e no lucro), independente de geração/estorno.
   const { data: desp } = await supabase
     .from("despesas")
     .select("id, descricao, categoria, valor, data_despesa, recorrente_id")
+    .is("recorrente_id", null)   // só avulsas; recorrentes vêm dos moldes
     .gte("data_despesa", periodo.inicio)
     .lt("data_despesa", periodo.fim)
     .order("data_despesa", { ascending: false })
     .returns<Despesa[]>();
 
-  const lista = desp ?? [];
+  const { data: recs } = await supabase
+    .from("despesas_recorrentes")
+    .select("id, descricao, categoria, valor, frequencia, dia_mes, dia_semana, data_inicio")
+    .eq("ativo", true)
+    .returns<{
+      id: string; descricao: string; categoria: CategoriaDespesa; valor: number;
+      frequencia: Frequencia; dia_mes: number | null; dia_semana: number | null; data_inicio: string;
+    }[]>();
+
+  const virtuais: Despesa[] = [];
+  for (const r of recs ?? []) {
+    for (const data of ocorrenciasNoMes(r, periodo)) {
+      virtuais.push({
+        id:            `rec-${r.id}-${data}`,
+        descricao:     r.descricao,
+        categoria:     r.categoria,
+        valor:         Number(r.valor),
+        data_despesa:  data,
+        recorrente_id: r.id,
+        virtual:       true,
+      });
+    }
+  }
+
+  const lista = [...(desp ?? []), ...virtuais]
+    .sort((a, b) => b.data_despesa.localeCompare(a.data_despesa));
   const despesasTotal = lista.reduce((s, d) => s + Number(d.valor), 0);
 
   // Agrupa por categoria (só as que têm valor), ordenado desc

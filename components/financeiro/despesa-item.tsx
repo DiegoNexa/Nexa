@@ -46,16 +46,27 @@ export function DespesaItem({ despesa }: { despesa: Despesa }) {
         − {BRL.format(despesa.valor)}
       </span>
 
-      <form action={excluirDespesa.bind(null, despesa.id)}>
-        <button
-          type="submit"
-          aria-label="Excluir despesa"
-          title="Excluir despesa"
-          className="p-2 rounded-lg text-on-surface-variant hover:text-[var(--color-error)] hover:bg-white/5 transition-all-custom"
+      {despesa.virtual ? (
+        // Ocorrência de despesa fixa — não se exclui individualmente;
+        // gerencia-se no painel "Despesas fixas".
+        <span
+          className="text-[10px] uppercase tracking-wider text-outline px-2 flex-shrink-0"
+          title="Despesa fixa — gerencie em Despesas fixas"
         >
-          <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>delete</span>
-        </button>
-      </form>
+          fixa
+        </span>
+      ) : (
+        <form action={excluirDespesa.bind(null, despesa.id)}>
+          <button
+            type="submit"
+            aria-label="Excluir despesa"
+            title="Excluir despesa"
+            className="p-2 rounded-lg text-on-surface-variant hover:text-[var(--color-error)] hover:bg-white/5 transition-all-custom"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>delete</span>
+          </button>
+        </form>
+      )}
     </div>
   );
 }

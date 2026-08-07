@@ -96,11 +96,8 @@ export async function criarDespesa(
 
   if (recErr) return { ok: false, message: recErr.message };
 
-  // Materializa imediatamente as ocorrências do mês da data escolhida
-  const inicioMes = `${ano}-${String(mes).padStart(2, "0")}-01`;
-  const proxMes   = new Date(Date.UTC(ano, mes, 1)).toISOString().slice(0, 10);
-  await supabase.rpc("gerar_despesas_recorrentes", { p_inicio: inicioMes, p_fim: proxMes });
-
+  // Não materializa no banco: a projeção da recorrente é calculada
+  // na hora pelo carregarFinanceiro (sempre entra no total do mês).
   revalidatePath("/financeiro");
   return {
     ok: true,
