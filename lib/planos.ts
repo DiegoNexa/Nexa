@@ -78,3 +78,62 @@ export const LABEL_STATUS: Record<AssinaturaStatus, string> = {
   cancelada:    "Cancelada",
   inadimplente: "Pagamento pendente",
 };
+
+// ─── Controle de acesso ────────────────────────────────────
+
+/**
+ * Dias de tolerância após uma falha de pagamento antes de bloquear.
+ *
+ * Existe porque falha de cartão costuma ser temporária (limite, cartão
+ * vencido) — cortar o acesso de quem já paga, na hora, é pior que
+ * esperar alguns dias. Também protege contra webhook que chegou
+ * errado: dá tempo de perceber antes de travar um cliente legítimo.
+ */
+export const GRACA_DIAS = 3;
+
+export type EstadoAssinatura = {
+  assinatura_status:        AssinaturaStatus;
+  trial_termina_em:         string;
+  assinatura_atualizada_em: string | null;
+};
+
+/**
+ * Regra única de bloqueio do app — usada pelo layout autenticado.
+ *
+ *   ativa         → nunca bloqueia
+ *   trial         → bloqueia depois que o teste grátis vence
+ *   inadimplente  → bloqueia após o período de graça
+ *   cancelada     → bloqueia
+ */
+export function acessoBloqueado(s: EstadoAssinatura): boolean {
+  const agora = Date.now();
+
+  switch (s.assinatura_status) {
+    case "ativa":
+      return false;
+
+    case "trial":
+      return new Date(s.trial_termina_em).getTime() < agora;
+
+    case "inadimplente": {
+      // Sem data de referência, é mais seguro liberar do que travar
+      if (!s.assinatura_atualizada_em) return false;
+      const limite = new Date(s.assinatura_atualizada_em).getTime()
+                   + GRACA_DIAS * 86_400_000;
+      return limite < agora;
+    }
+
+    case "cancelada":
+      return true;
+  }
+}
+
+/** Motivo do bloqueio, para a mensagem exibida ao usuário */
+export function motivoBloqueio(s: EstadoAssinatura): string {
+  switch (s.assinatura_status) {
+    case "trial":        return "Seu teste grátis de 30 dias chegou ao fim.";
+    case "inadimplente": return "Não conseguimos processar o pagamento da sua assinatura.";
+    case "cancelada":    return "Sua assinatura foi cancelada.";
+    default:             return "Sua assinatura não está ativa.";
+  }
+}

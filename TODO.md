@@ -132,8 +132,28 @@ git push
 ## 💳 Ativar cobrança (AbacatePay) — mais recente
 
 O código da assinatura está pronto, mas **não cobra nada até estes passos**.
-Nesta fase ninguém é bloqueado por falta de pagamento — o estado do plano é
-só registrado e exibido nas Configurações.
+
+### 🔒 O bloqueio está ATIVO
+Sem assinatura válida, o app inteiro fica inacessível para o salão — o usuário
+é levado para `/assinatura`. Regra em `acessoBloqueado()`
+([`lib/planos.ts`](lib/planos.ts)):
+
+| Status | Acesso |
+|---|---|
+| `ativa` | liberado |
+| `trial` | liberado até `trial_termina_em` (30 dias) |
+| `inadimplente` | liberado por mais **3 dias** (`GRACA_DIAS`), depois bloqueia |
+| `cancelada` | bloqueado |
+
+**Continua funcionando mesmo bloqueado:** o link público `/agendar/[slug]`
+(os clientes finais do salão não têm culpa) e o webhook — é ele que
+desbloqueia quando o pagamento entra.
+
+> ⚠️ **Risco a monitorar:** se o webhook falhar, um cliente que pagou fica
+> travado. Antes de confiar 100% no bloqueio, confirme em produção que o
+> webhook está atualizando `saloes.assinatura_status`. Para destravar alguém
+> na emergência, rode no SQL Editor:
+> `update saloes set assinatura_status='ativa', plano='profissional' where id='<uuid>';`
 
 ### ⚠️ Antes de tudo: confirmar com o suporte do AbacatePay
 1. **Assinatura recorrente aceita PIX?** A página comercial anuncia PIX a

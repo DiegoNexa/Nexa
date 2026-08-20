@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/app/sidebar";
+import { acessoBloqueado, type AssinaturaStatus } from "@/lib/planos";
 import { logoutAction } from "./dashboard/actions";
 
 /**
@@ -25,11 +26,27 @@ export default async function AppLayout({
     redirect("/login");
   }
 
+  type Salao = {
+    nome:                     string;
+    assinatura_status:        AssinaturaStatus;
+    trial_termina_em:         string;
+    assinatura_atualizada_em: string | null;
+  };
+
   const { data: usuario } = await supabase
     .from("usuarios")
-    .select("nome, role, saloes(nome)")
+    .select("nome, role, saloes(nome, assinatura_status, trial_termina_em, assinatura_atualizada_em)")
     .eq("id", user.id)
-    .single<{ nome: string; role: string; saloes: { nome: string } | null }>();
+    .single<{ nome: string; role: string; saloes: Salao | null }>();
+
+  // Guarda de assinatura: sem plano válido, o app inteiro fica fora do
+  // ar para este salão. A tela /assinatura fica FORA deste layout —
+  // é o que evita loop de redirect. O link público /agendar/[slug]
+  // também está fora daqui, então continua no ar para os clientes
+  // finais do salão (eles não têm culpa da assinatura do dono).
+  if (usuario?.saloes && acessoBloqueado(usuario.saloes)) {
+    redirect("/assinatura");
+  }
 
   // Primeiro nome do usuário (extraído do nome completo cadastrado)
   // e nome do salão. NÃO usamos email como fallback — o sidebar
