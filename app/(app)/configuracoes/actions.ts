@@ -1,8 +1,12 @@
 "use server";
 
 import { z } from "zod";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { criarCheckoutAssinatura } from "@/lib/abacatepay";
+import { isPlanoKey } from "@/lib/planos";
 
 const schema = z.object({
   nome:              z.string().trim().min(2, "Nome muito curto").max(80, "Nome muito longo"),
@@ -69,4 +73,54 @@ export async function atualizarSalao(
 
   revalidatePath("/configuracoes");
   return { ok: true, message: "Dados do salão atualizados." };
+}
+
+// ─── Assinatura (AbacatePay) ───────────────────────────────
+export type AssinaturaState = { ok: boolean; message?: string };
+
+/**
+ * Cria o checkout de assinatura e redireciona para o AbacatePay.
+ * Só o dono do salão pode assinar. Em caso de sucesso não retorna —
+ * o redirect leva o usuário para fora do app.
+ */
+export async function iniciarAssinatura(
+  plano: string,
+  _prev: AssinaturaState,
+): Promise<AssinaturaState> {
+  if (!isPlanoKey(plano)) {
+    return { ok: false, message: "Plano inválido." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Sessão expirada." };
+
+  const { data: u } = await supabase
+    .from("usuarios")
+    .select("salao_id, role")
+    .eq("id", user.id)
+    .maybeSingle<{ salao_id: string; role: string }>();
+
+  if (!u) return { ok: false, message: "Sua conta não está vinculada a um salão." };
+  if (u.role !== "dono") {
+    return { ok: false, message: "Apenas o dono do salão pode contratar um plano." };
+  }
+
+  const h    = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  if (!host) return { ok: false, message: "Não foi possível identificar o endereço do app." };
+  const baseUrl = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
+
+  const resultado = await criarCheckoutAssinatura({
+    plano,
+    salaoId: u.salao_id,
+    baseUrl,
+  });
+
+  if (!resultado.ok) {
+    return { ok: false, message: resultado.error };
+  }
+
+  // Fora do try/catch: redirect() sinaliza via exceção
+  redirect(resultado.url);
 }

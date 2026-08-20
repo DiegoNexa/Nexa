@@ -177,6 +177,21 @@ erDiagram
         string nome
         string slug
         string telefone_whatsapp
+        string plano
+        string assinatura_status
+        timestamp trial_termina_em
+        string assinatura_id
+        timestamp created_at
+    }
+
+    pagamentos {
+        uuid id PK
+        uuid salao_id FK
+        string evento_id UK
+        string evento
+        decimal valor
+        string metodo
+        jsonb payload
         timestamp created_at
     }
 
@@ -326,6 +341,7 @@ erDiagram
         timestamp created_at
     }
 
+    saloes ||--o{ pagamentos : ""
     saloes ||--o{ usuarios : ""
     saloes ||--o{ profissionais : ""
     saloes ||--o{ clientes : ""

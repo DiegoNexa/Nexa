@@ -129,6 +129,56 @@ git push
 
 ---
 
+## 💳 Ativar cobrança (AbacatePay) — mais recente
+
+O código da assinatura está pronto, mas **não cobra nada até estes passos**.
+Nesta fase ninguém é bloqueado por falta de pagamento — o estado do plano é
+só registrado e exibido nas Configurações.
+
+### ⚠️ Antes de tudo: confirmar com o suporte do AbacatePay
+1. **Assinatura recorrente aceita PIX?** A página comercial anuncia PIX a
+   R$0,80/parcela, mas a doc de `POST /subscriptions/create` diz que `methods`
+   suporta **apenas CARD**. Hoje o código usa só `CARD`
+   (`METODOS_ASSINATURA` em [`lib/abacatepay.ts`](lib/abacatepay.ts)) — se
+   confirmarem PIX, é só incluir `"PIX"` nessa constante.
+2. **A recorrência PIX é automática (PIX Automático)** ou o cliente precisa
+   pagar manualmente todo mês? Se for manual, o churn involuntário pode anular
+   a economia da taxa.
+
+### Passo 1 — Criar os produtos no painel
+Criar **3 produtos com ciclo MONTHLY**, com os mesmos preços de
+[`lib/planos.ts`](lib/planos.ts): Solo R$49 · Profissional R$99 · Premium R$199.
+Anotar o ID de cada um.
+
+### Passo 2 — Env vars (`.env.local` **e** Vercel)
+```
+ABACATEPAY_API_KEY=
+ABACATEPAY_WEBHOOK_SECRET=        # openssl rand -base64 32
+ABACATEPAY_PRODUTO_SOLO=
+ABACATEPAY_PRODUTO_PROFISSIONAL=
+ABACATEPAY_PRODUTO_PREMIUM=
+```
+
+### Passo 3 — Cadastrar o webhook
+URL: `https://SEU_APP.vercel.app/api/webhooks/abacatepay?secret=SEU_WEBHOOK_SECRET`
+(o mesmo valor de `ABACATEPAY_WEBHOOK_SECRET`). Eventos:
+`subscription.completed`, `subscription.renewed`, `subscription.cancelled`.
+
+> O webhook exige URL pública — só dá pra testar no deploy (ou com túnel local).
+
+### Passo 4 — Aplicar a migration 020
+[`supabase/migrations/020_assinaturas.sql`](supabase/migrations/020_assinaturas.sql).
+SQL Editor → cole → Run.
+
+### Passo 5 — Testar
+1. `/configuracoes` → deve mostrar "Teste grátis — faltam X dias" e os 3 planos
+2. Clicar em **Assinar** → redireciona pro checkout com o valor certo
+3. Pagar em modo de teste → conferir que `saloes.plano`/`assinatura_status`
+   mudaram e que apareceu uma linha em `pagamentos`
+4. **Reenviar o mesmo webhook** pelo painel → não pode duplicar nada (idempotência)
+
+---
+
 ## 📋 Outras pendências pré-deploy
 
 ### ⏳ Aplicar migration 019 no Supabase (mais recente — Despesas recorrentes)

@@ -1,12 +1,24 @@
 import { createClient } from "@/lib/supabase/server";
 import { SalaoForm } from "@/components/configuracoes/salao-form";
 import { LinkPublicoCopy } from "@/components/configuracoes/link-publico-copy";
+import { PlanosCards } from "@/components/configuracoes/planos-cards";
+import {
+  PLANOS,
+  LABEL_STATUS,
+  diasRestantes,
+  isPlanoKey,
+  type AssinaturaStatus,
+  type PlanoSalao,
+} from "@/lib/planos";
 
 type Salao = {
   id:                string;
   nome:              string;
   slug:              string;
   telefone_whatsapp: string | null;
+  plano:             PlanoSalao;
+  assinatura_status: AssinaturaStatus;
+  trial_termina_em:  string;
 };
 
 export default async function ConfiguracoesPage() {
@@ -21,7 +33,7 @@ export default async function ConfiguracoesPage() {
 
   const { data: salao } = await supabase
     .from("saloes")
-    .select("id, nome, slug, telefone_whatsapp")
+    .select("id, nome, slug, telefone_whatsapp, plano, assinatura_status, trial_termina_em")
     .eq("id", usuario?.salao_id ?? "")
     .single<Salao>();
 
@@ -72,6 +84,24 @@ export default async function ConfiguracoesPage() {
           </section>
         )}
 
+        {/* Plano e assinatura */}
+        {salao && (
+          <section className="glass-card rounded-2xl p-5 md:p-6">
+            <h2 className="text-sm font-semibold text-on-surface mb-1">Plano e assinatura</h2>
+            <AssinaturaResumo salao={salao} />
+            <PlanosCards
+              planoAtual={salao.plano}
+              assinaturaAtiva={salao.assinatura_status === "ativa"}
+              podeAssinar={podeEditar}
+            />
+            {!podeEditar && (
+              <p className="text-xs text-on-surface-variant mt-3">
+                Apenas o dono do salão pode contratar ou alterar o plano.
+              </p>
+            )}
+          </section>
+        )}
+
         {/* Conta */}
         <section className="glass-card rounded-2xl p-5 md:p-6">
           <h2 className="text-sm font-semibold text-on-surface mb-4">Conta</h2>
@@ -98,6 +128,47 @@ export default async function ConfiguracoesPage() {
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+/** Faixa de status acima dos cards de plano */
+function AssinaturaResumo({ salao }: { salao: Salao }) {
+  const status = salao.assinatura_status;
+  const dias   = diasRestantes(salao.trial_termina_em);
+
+  // cor + texto de apoio por estado
+  const info = (() => {
+    if (status === "ativa") {
+      const nome = isPlanoKey(salao.plano) ? PLANOS[salao.plano].nome : "—";
+      return {
+        cor:   "#34D399",
+        texto: `Plano ${nome} · renovação automática`,
+      };
+    }
+    if (status === "trial") {
+      return {
+        cor:   dias > 0 ? "var(--color-primary)" : "#EF4444",
+        texto: dias > 0
+          ? `Faltam ${dias} ${dias === 1 ? "dia" : "dias"} de teste grátis`
+          : "Seu teste grátis terminou — escolha um plano para continuar apoiando o app",
+      };
+    }
+    if (status === "inadimplente") {
+      return { cor: "#EF4444", texto: "Não conseguimos processar o último pagamento" };
+    }
+    return { cor: "#9CA3AF", texto: "Sua assinatura foi cancelada" };
+  })();
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap mb-4">
+      <span
+        className="text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded"
+        style={{ background: `${info.cor}22`, color: info.cor }}
+      >
+        {LABEL_STATUS[status]}
+      </span>
+      <span className="text-xs text-on-surface-variant">{info.texto}</span>
     </div>
   );
 }
