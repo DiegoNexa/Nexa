@@ -32,6 +32,10 @@ const EVENTOS: Record<string, "ativa" | "cancelada"> = {
   "subscription.completed": "ativa",
   "subscription.renewed":   "ativa",
   "subscription.cancelled": "cancelada",
+  // Cobrança única — usada quando ABACATEPAY_MODO_AVULSO=1 (conta em
+  // modo de teste não cria produto recorrente). Ativa o salão do mesmo
+  // jeito, mas não renova sozinho.
+  "billing.paid":           "ativa",
 };
 
 /** Comparação em tempo constante, segura para tamanhos diferentes */
@@ -84,6 +88,9 @@ export async function POST(request: Request) {
       method?:     string;
       subscription?: { id?: string };
       metadata?:   { salao_id?: string; plano?: string };
+      // Presente na cobrança avulsa (billing.paid): o id do salão é
+      // enviado no externalId do produto
+      products?:   { externalId?: string }[];
     };
   };
 
@@ -107,7 +114,11 @@ export async function POST(request: Request) {
   }
 
   // Salão vem do externalId (enviado na criação do checkout)
-  const salaoId = payload.data?.externalId ?? payload.data?.metadata?.salao_id;
+  // Ordem de busca: externalId (assinatura) → metadata → externalId do
+  // produto (cobrança avulsa, onde o id do salão vive em products[])
+  const salaoId = payload.data?.externalId
+    ?? payload.data?.metadata?.salao_id
+    ?? payload.data?.products?.[0]?.externalId;
   if (!salaoId) {
     return NextResponse.json({ ok: false, error: "Evento sem externalId." }, { status: 400 });
   }

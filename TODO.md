@@ -165,6 +165,22 @@ desbloqueia quando o pagamento entra.
    pagar manualmente todo mês? Se for manual, o churn involuntário pode anular
    a economia da taxa.
 
+### 🧪 Atalho: testar sem produto recorrente (conta em modo de teste)
+Contas em modo de teste do AbacatePay não criam produto recorrente. Para validar
+o fluxo ponta a ponta agora, ligue o **modo avulso** — ele troca a assinatura por
+uma **cobrança única** e monta o produto a partir de [`lib/planos.ts`](lib/planos.ts),
+dispensando os produtos do painel:
+
+```
+ABACATEPAY_MODO_AVULSO=1
+```
+
+Nesse modo os `ABACATEPAY_PRODUTO_*` **não são usados** e o pagamento é via PIX.
+O webhook trata `billing.paid` e ativa o salão igual à assinatura.
+
+> ⚠️ **Não renova sozinho.** É só para teste. Ao ir para produção: remova a env
+> var, crie os 3 produtos MONTHLY (Passo 1) e preencha os IDs (Passo 2).
+
 ### Passo 1 — Criar os produtos no painel
 Criar **3 produtos com ciclo MONTHLY**, com os mesmos preços de
 [`lib/planos.ts`](lib/planos.ts): Solo R$49 · Profissional R$99 · Premium R$199.

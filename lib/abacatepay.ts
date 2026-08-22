@@ -6,6 +6,7 @@
  * Env vars:
  *   - ABACATEPAY_API_KEY        (obrigatório) — segredo de servidor
  *   - ABACATEPAY_WEBHOOK_SECRET (usado pelo webhook, não aqui)
+ *   - ABACATEPAY_MODO_AVULSO    (opcional) — ver "modo avulso" abaixo
  *
  * ⚠️ ANTES DE LANÇAR — confirmar com o AbacatePay:
  *   1. Se a assinatura recorrente aceita PIX. A doc de
@@ -18,9 +19,26 @@
  *      caso aumenta muito o churn involuntário.
  */
 
-import type { PlanoKey } from "./planos";
+import { PLANOS, type PlanoKey } from "./planos";
 
 const API_BASE = "https://api.abacatepay.com/v1";
+
+/**
+ * MODO AVULSO (teste)
+ *
+ * Contas em modo de teste do AbacatePay não conseguem criar produtos
+ * recorrentes. Com ABACATEPAY_MODO_AVULSO=1 a cobrança passa a ser
+ * ÚNICA (/billing/create) em vez de assinatura (/subscriptions/create).
+ *
+ * Vantagem: o produto é montado aqui a partir de lib/planos.ts, então
+ * NÃO é preciso cadastrar produto nenhum no painel — os IDs
+ * ABACATEPAY_PRODUTO_* ficam dispensados.
+ *
+ * Serve para validar o fluxo ponta a ponta (checkout → pagamento →
+ * webhook → desbloqueio do salão). NÃO renova sozinho: ao voltar para
+ * produção, remova a env var e cadastre os produtos MONTHLY.
+ */
+const MODO_AVULSO = process.env.ABACATEPAY_MODO_AVULSO === "1";
 
 /**
  * Métodos aceitos na assinatura. Começa só com CARD porque é o
@@ -29,13 +47,16 @@ const API_BASE = "https://api.abacatepay.com/v1";
  */
 const METODOS_ASSINATURA = ["CARD"];
 
+/** No modo avulso o PIX é liberado (não depende de recorrência) */
+const METODOS_AVULSO = ["PIX"];
+
 /**
  * ID do produto de cada plano no painel do AbacatePay.
  * Os produtos precisam ser criados com ciclo MONTHLY e com o mesmo
  * preço de lib/planos.ts — o checkout referencia o produto por ID e
  * o valor cobrado vem de lá.
  *
- * Preencher via env var para não hardcodar ID de ambiente no código.
+ * Ignorado quando MODO_AVULSO está ligado.
  */
 const PRODUTO_ID: Record<PlanoKey, string | undefined> = {
   solo:         process.env.ABACATEPAY_PRODUTO_SOLO,
@@ -56,37 +77,68 @@ type CriarCheckoutParams = {
 export async function criarCheckoutAssinatura(
   p: CriarCheckoutParams,
 ): Promise<CheckoutResultado> {
-  const apiKey    = process.env.ABACATEPAY_API_KEY;
-  const produtoId = PRODUTO_ID[p.plano];
-
+  const apiKey = process.env.ABACATEPAY_API_KEY;
   if (!apiKey) {
     return { ok: false, error: "ABACATEPAY_API_KEY não configurada." };
   }
-  if (!produtoId) {
-    return {
-      ok: false,
-      error: `Produto do plano "${p.plano}" não configurado no AbacatePay.`,
+
+  const retorno = `${p.baseUrl}/configuracoes`;
+  const plano   = PLANOS[p.plano];
+
+  // Metadados iguais nos dois modos — o webhook lê daqui
+  const metadata = { salao_id: p.salaoId, plano: p.plano };
+
+  let endpoint: string;
+  let corpo: Record<string, unknown>;
+
+  if (MODO_AVULSO) {
+    // Cobrança única: o produto é declarado aqui (preço em centavos),
+    // sem depender de nada cadastrado no painel.
+    endpoint = `${API_BASE}/billing/create`;
+    corpo = {
+      frequency:  "ONE_TIME",
+      methods:    METODOS_AVULSO,
+      products: [{
+        externalId:  p.salaoId,          // fallback do webhook para achar o salão
+        name:        `Nexa ${plano.nome}`,
+        description: plano.descricao,
+        quantity:    1,
+        price:       Math.round(plano.precoMensal * 100),
+      }],
+      externalId:    p.salaoId,
+      returnUrl:     retorno,
+      completionUrl: retorno,
+      metadata,
+    };
+  } else {
+    const produtoId = PRODUTO_ID[p.plano];
+    if (!produtoId) {
+      return {
+        ok: false,
+        error: `Produto do plano "${p.plano}" não configurado no AbacatePay.`,
+      };
+    }
+
+    endpoint = `${API_BASE}/subscriptions/create`;
+    corpo = {
+      items:         [{ id: produtoId, quantity: 1 }],
+      methods:       METODOS_ASSINATURA,
+      externalId:    p.salaoId,
+      returnUrl:     retorno,   // usuário desistiu / voltou
+      completionUrl: retorno,   // pagamento concluído
+      metadata,
     };
   }
 
-  const retorno = `${p.baseUrl}/configuracoes`;
-
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}/subscriptions/create`, {
+    res = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization:  `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        items:        [{ id: produtoId, quantity: 1 }],
-        methods:      METODOS_ASSINATURA,
-        externalId:   p.salaoId,
-        returnUrl:    retorno,   // usuário desistiu / voltou
-        completionUrl: retorno,  // pagamento concluído
-        metadata:     { salao_id: p.salaoId, plano: p.plano },
-      }),
+      body: JSON.stringify(corpo),
     });
   } catch (err) {
     return { ok: false, error: `Falha de rede: ${String(err)}` };
