@@ -25,6 +25,7 @@ export type Plano = {
   maxProfissionais: number;        // Infinity = ilimitado (ainda não aplicado)
   descricao:       string;
   destaque:        boolean;        // "Mais popular"
+  beneficios:      string[];       // exibidos nos cards de plano
 };
 
 export const PLANOS: Record<PlanoKey, Plano> = {
@@ -36,6 +37,12 @@ export const PLANOS: Record<PlanoKey, Plano> = {
     maxProfissionais: 1,
     descricao:        "Para autônomas que querem organizar a agenda e ter link público.",
     destaque:         false,
+    beneficios: [
+      "Agenda completa",
+      "Link público de agendamento",
+      "Cadastro de clientes",
+      "Lembrete por e-mail",
+    ],
   },
   profissional: {
     key:              "profissional",
@@ -45,6 +52,13 @@ export const PLANOS: Record<PlanoKey, Plano> = {
     maxProfissionais: 5,
     descricao:        "Para salões que precisam de equipe, comissões e relatórios.",
     destaque:         true,
+    beneficios: [
+      "Tudo do plano Solo",
+      "Equipe com comissões",
+      "Folha de pagamento em PDF",
+      "Controle de estoque",
+      "Ranking e carga horária",
+    ],
   },
   premium: {
     key:              "premium",
@@ -54,6 +68,13 @@ export const PLANOS: Record<PlanoKey, Plano> = {
     maxProfissionais: Infinity,
     descricao:        "Para salões consolidados com gestão profissional completa.",
     destaque:         false,
+    beneficios: [
+      "Tudo do plano Profissional",
+      "Profissionais ilimitados",
+      "Gestão financeira completa",
+      "Despesas fixas recorrentes",
+      "Suporte prioritário",
+    ],
   },
 };
 
@@ -131,9 +152,101 @@ export function acessoBloqueado(s: EstadoAssinatura): boolean {
 /** Motivo do bloqueio, para a mensagem exibida ao usuário */
 export function motivoBloqueio(s: EstadoAssinatura): string {
   switch (s.assinatura_status) {
-    case "trial":        return "Seu teste grátis de 30 dias chegou ao fim.";
+    case "trial":        return `Seu teste grátis de ${TRIAL_DIAS} dias chegou ao fim.`;
     case "inadimplente": return "Não conseguimos processar o pagamento da sua assinatura.";
     case "cancelada":    return "Sua assinatura foi cancelada.";
     default:             return "Sua assinatura não está ativa.";
+  }
+}
+
+// ─── Aviso de renovação (faixa no dashboard) ───────────────
+
+/** A partir de quantos dias restantes o aviso começa a aparecer */
+const AVISO_INFO_DIAS    = 7;
+/** A partir de quantos dias restantes o aviso fica urgente */
+const AVISO_ATENCAO_DIAS = 3;
+
+export type NivelAviso = "info" | "atencao" | "critico";
+
+export type Aviso = {
+  nivel:  NivelAviso;
+  titulo: string;
+  texto:  string;
+  cta:    string;
+};
+
+/**
+ * Aviso progressivo mostrado no dashboard. Retorna `null` quando não
+ * há nada a dizer — assinatura ativa ou trial ainda folgado — para a
+ * faixa não virar ruído permanente.
+ *
+ * Os casos `critico` só alcançam quem NÃO está bloqueado (ex.:
+ * inadimplente dentro do período de graça); quem está bloqueado sequer
+ * chega ao dashboard. Ainda assim são cobertos aqui para manter esta
+ * função como fonte única do estado da assinatura.
+ */
+export function avisoAssinatura(s: EstadoAssinatura): Aviso | null {
+  const cta = "Ver planos";
+
+  switch (s.assinatura_status) {
+    case "ativa":
+      return null;
+
+    case "trial": {
+      const dias = diasRestantes(s.trial_termina_em);
+
+      if (dias > AVISO_INFO_DIAS) return null;
+
+      if (dias === 0) {
+        return {
+          nivel:  "critico",
+          titulo: "Seu teste grátis terminou",
+          texto:  "Escolha um plano para continuar usando a Nexa.",
+          cta,
+        };
+      }
+
+      const plural = dias === 1 ? "dia" : "dias";
+      return dias <= AVISO_ATENCAO_DIAS
+        ? {
+            nivel:  "atencao",
+            titulo: `Faltam ${dias} ${plural} de teste grátis`,
+            texto:  "Escolha um plano para não perder o acesso ao sistema.",
+            cta,
+          }
+        : {
+            nivel:  "info",
+            titulo: `Seu teste grátis termina em ${dias} ${plural}`,
+            texto:  "Assine quando quiser — seus dados continuam salvos.",
+            cta,
+          };
+    }
+
+    case "inadimplente": {
+      // Quantos dias ainda restam da tolerância antes do bloqueio
+      const base = s.assinatura_atualizada_em
+        ? new Date(s.assinatura_atualizada_em).getTime() + GRACA_DIAS * 86_400_000
+        : null;
+      const restantes = base
+        ? Math.max(0, Math.ceil((base - Date.now()) / 86_400_000))
+        : GRACA_DIAS;
+
+      return {
+        nivel:  "critico",
+        titulo: "Não conseguimos processar seu pagamento",
+        texto:  restantes > 0
+          ? `Regularize em até ${restantes} ${restantes === 1 ? "dia" : "dias"} para manter o acesso.`
+          : "Regularize para manter o acesso ao sistema.",
+        cta:    "Regularizar",
+      };
+    }
+
+    case "cancelada":
+      return {
+        nivel:  "critico",
+        titulo: "Sua assinatura foi cancelada",
+        texto:  "Reative um plano para continuar usando a Nexa.",
+        cta:    "Reativar",
+      };
   }
 }

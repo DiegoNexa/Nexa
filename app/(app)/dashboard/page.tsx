@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { BRL, mesAtual } from "@/lib/folha-pagamento";
 import { carregarFinanceiro } from "@/lib/financeiro";
+import { AvisoAssinatura } from "@/components/app/aviso-assinatura";
+import type { EstadoAssinatura } from "@/lib/planos";
 
 type Agendamento = {
   id:               string;
@@ -64,7 +66,11 @@ export default async function DashboardPage() {
     { data: clientes },
     financeiro,
   ] = await Promise.all([
-    supabase.from("usuarios").select("nome").eq("id", user!.id).single<{ nome: string }>(),
+    supabase
+      .from("usuarios")
+      .select("nome, saloes(assinatura_status, trial_termina_em, assinatura_atualizada_em)")
+      .eq("id", user!.id)
+      .single<{ nome: string; saloes: EstadoAssinatura | null }>(),
     supabase
       .from("agendamentos")
       .select(`
@@ -123,6 +129,9 @@ export default async function DashboardPage() {
           Resumo do salão · {periodoMes.label}
         </p>
       </div>
+
+      {/* Aviso de assinatura — só aparece quando há algo a dizer */}
+      {usuario?.saloes && <AvisoAssinatura salao={usuario.saloes} />}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">

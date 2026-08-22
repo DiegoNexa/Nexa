@@ -197,6 +197,24 @@ SQL Editor → cole → Run.
    mudaram e que apareceu uma linha em `pagamentos`
 4. **Reenviar o mesmo webhook** pelo painel → não pode duplicar nada (idempotência)
 
+### Passo 6 — Testar os avisos de renovação (dashboard)
+A faixa é progressiva (`avisoAssinatura()` em [`lib/planos.ts`](lib/planos.ts)).
+Para ver cada estado sem esperar 30 dias, force a data no SQL Editor e recarregue
+`/dashboard` (troque `<uuid>` pelo id do salão):
+
+```sql
+-- Nenhum aviso (trial folgado, > 7 dias)
+update saloes set assinatura_status='trial',
+  trial_termina_em = now() + interval '20 days' where id='<uuid>';
+
+-- Azul "termina em 5 dias"           → interval '5 days'
+-- Dourado "faltam 2 dias"            → interval '2 days'
+-- Nenhum aviso (assinatura em dia)   → assinatura_status='ativa', plano='profissional'
+```
+
+> Trial **vencido** (`now() - interval '1 day'`) não mostra faixa: o acesso é
+> bloqueado antes e o usuário cai direto em `/assinatura`.
+
 ---
 
 ## 📋 Outras pendências pré-deploy

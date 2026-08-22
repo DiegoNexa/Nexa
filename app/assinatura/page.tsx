@@ -98,11 +98,27 @@ export default async function AssinaturaPage() {
           </p>
 
           {ehDono ? (
-            <PlanosCards
-              planoAtual={salao.plano}
-              assinaturaAtiva={false}
-              podeAssinar
-            />
+            <>
+              <PlanosCards
+                planoAtual={salao.plano}
+                assinaturaAtiva={false}
+                podeAssinar
+              />
+              <div className="flex items-center justify-center gap-4 flex-wrap mt-5 text-xs text-on-surface-variant">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-primary" style={{ fontSize: "16px" }}>
+                    lock
+                  </span>
+                  Pagamento seguro via AbacatePay
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-primary" style={{ fontSize: "16px" }}>
+                    event_repeat
+                  </span>
+                  Cancele quando quiser
+                </span>
+              </div>
+            </>
           ) : (
             <div
               className="rounded-xl px-4 py-3 text-sm"

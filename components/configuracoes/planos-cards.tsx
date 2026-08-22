@@ -68,7 +68,22 @@ function PlanoCard({
         <span className="text-xs font-medium text-on-surface-variant">/mês</span>
       </p>
       <p className="text-xs text-on-surface-variant mt-0.5">{plano.profissionais}</p>
-      <p className="text-xs text-on-surface-variant mt-2 flex-1">{plano.descricao}</p>
+      <p className="text-xs text-on-surface-variant mt-2">{plano.descricao}</p>
+
+      {/* Benefícios — vêm de lib/planos.ts (mesma fonte da landing) */}
+      <ul className="mt-3 space-y-1.5 flex-1">
+        {plano.beneficios.map((b) => (
+          <li key={b} className="flex items-start gap-1.5 text-xs text-on-surface-variant">
+            <span
+              className="material-symbols-outlined flex-shrink-0 text-primary"
+              style={{ fontSize: "15px", lineHeight: "16px" }}
+            >
+              check
+            </span>
+            <span>{b}</span>
+          </li>
+        ))}
+      </ul>
 
       {state.message && (
         <p className="text-xs mt-2" style={{ color: "var(--color-error)" }}>
