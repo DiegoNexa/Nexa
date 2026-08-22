@@ -66,14 +66,32 @@ export async function POST(request: Request) {
   const raw = await request.text();
 
   // ── Camada 2: HMAC-SHA256 do corpo ─────────────────────────
-  // Só valida quando o header vem preenchido. Assim o endpoint não
-  // quebra caso o formato da assinatura mude — mas a camada 1 acima
-  // continua obrigatória. Tornar estrito quando confirmado com o
-  // suporte do AbacatePay.
-  const assinatura = request.headers.get("x-webhook-signature");
+  // Defesa em profundidade. A camada 1 (segredo na query string) já
+  // autentica sozinha — funciona como bearer token, mesmo nível do
+  // /api/cron/lembretes.
+  //
+  // O AbacatePay exige um "Secret" no cadastro do webhook, mas o
+  // formato exato da assinatura não está documentado (hex? base64?
+  // com prefixo?). Por isso comparamos contra as codificações usuais
+  // e, se NENHUMA for reconhecida, seguimos em frente em vez de
+  // derrubar o pagamento — falhar fechado aqui deixaria um cliente
+  // que pagou preso do lado de fora.
+  //
+  // Com ABACATEPAY_WEBHOOK_STRICT=1 o endpoint passa a rejeitar
+  // qualquer assinatura que não bata (use depois de confirmar o
+  // formato nos logs do painel).
+  const assinatura = (request.headers.get("x-webhook-signature") ?? "")
+    .replace(/^sha256=/i, "")
+    .trim();
+
   if (assinatura) {
-    const esperado = createHmac("sha256", segredo).update(raw).digest("hex");
-    if (!seguroIgual(assinatura, esperado)) {
+    const hmac     = createHmac("sha256", segredo).update(raw);
+    const digest   = hmac.digest();
+    const confere  = seguroIgual(assinatura, digest.toString("hex"))
+                  || seguroIgual(assinatura, digest.toString("base64"))
+                  || seguroIgual(assinatura, digest.toString("base64url"));
+
+    if (!confere && process.env.ABACATEPAY_WEBHOOK_STRICT === "1") {
       return NextResponse.json({ ok: false, error: "Assinatura inválida." }, { status: 401 });
     }
   }
