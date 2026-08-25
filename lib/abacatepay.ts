@@ -70,8 +70,18 @@ type CheckoutResultado =
 
 type CriarCheckoutParams = {
   plano:      PlanoKey;
-  salaoId:    string;   // vira externalId — é o que amarra o webhook ao salão
+  salaoId:    string;   // vai na metadata — é o que amarra o webhook ao salão
   baseUrl:    string;   // origem da aplicação, para montar as URLs de retorno
+  /**
+   * Dados do pagador. O AbacatePay EXIGE os quatro campos para criar
+   * a cobrança — omitir o bloco devolve "Customer not found".
+   */
+  cliente: {
+    nome:     string;
+    email:    string;
+    telefone: string;   // só dígitos, com DDD
+    documento: string;  // CPF (11) ou CNPJ (14), só dígitos
+  };
 };
 
 export async function criarCheckoutAssinatura(
@@ -94,18 +104,26 @@ export async function criarCheckoutAssinatura(
   if (MODO_AVULSO) {
     // Cobrança única: o produto é declarado aqui (preço em centavos),
     // sem depender de nada cadastrado no painel.
+    // ATENÇÃO: nada de `externalId` no topo. A API interpreta esse
+    // campo como identificador do CLIENTE e responde
+    // "Customer not found". O vínculo com o salão vai só na metadata.
     endpoint = `${API_BASE}/billing/create`;
     corpo = {
       frequency:  "ONE_TIME",
       methods:    METODOS_AVULSO,
       products: [{
-        externalId:  p.salaoId,          // fallback do webhook para achar o salão
+        externalId:  p.salaoId,   // a API reescreve isto; serve só de rótulo
         name:        `Nexa ${plano.nome}`,
         description: plano.descricao,
         quantity:    1,
         price:       Math.round(plano.precoMensal * 100),
       }],
-      externalId:    p.salaoId,
+      customer: {
+        name:      p.cliente.nome,
+        email:     p.cliente.email,
+        cellphone: p.cliente.telefone,
+        taxId:     p.cliente.documento,
+      },
       returnUrl:     retorno,
       completionUrl: retorno,
       metadata,

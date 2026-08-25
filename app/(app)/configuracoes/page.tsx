@@ -16,6 +16,7 @@ type Salao = {
   nome:              string;
   slug:              string;
   telefone_whatsapp: string | null;
+  documento:         string | null;
   plano:             PlanoSalao;
   assinatura_status: AssinaturaStatus;
   trial_termina_em:  string;
@@ -33,7 +34,7 @@ export default async function ConfiguracoesPage() {
 
   const { data: salao } = await supabase
     .from("saloes")
-    .select("id, nome, slug, telefone_whatsapp, plano, assinatura_status, trial_termina_em")
+    .select("id, nome, slug, telefone_whatsapp, documento, plano, assinatura_status, trial_termina_em")
     .eq("id", usuario?.salao_id ?? "")
     .single<Salao>();
 
@@ -79,6 +80,7 @@ export default async function ConfiguracoesPage() {
             <SalaoForm
               nome={salao.nome}
               telefoneWhatsapp={salao.telefone_whatsapp}
+              documento={salao.documento}
               podeEditar={podeEditar}
             />
           </section>

@@ -116,7 +116,13 @@ export async function POST(request: Request) {
       amount?:     number;
       method?:     string;
       subscription?: { id?: string };
-      metadata?:   { salao_id?: string; plano?: string };
+      // A API aninha a nossa metadata dentro da dela:
+      //   data.metadata.metadata.salao_id
+      metadata?: {
+        salao_id?: string;
+        plano?:    string;
+        metadata?: { salao_id?: string; plano?: string };
+      };
       // Presente na cobrança avulsa (billing.paid): o id do salão é
       // enviado no externalId do produto
       products?:   { externalId?: string }[];
@@ -147,14 +153,18 @@ export async function POST(request: Request) {
   // Salão vem do externalId (enviado na criação do checkout)
   // Ordem de busca: externalId (assinatura) → metadata → externalId do
   // produto (cobrança avulsa, onde o id do salão vive em products[])
-  const salaoId = payload.data?.externalId
-    ?? payload.data?.metadata?.salao_id
-    ?? payload.data?.products?.[0]?.externalId;
+  // A metadata pode vir no nível de cima ou aninhada — a API do
+  // AbacatePay embrulha a nossa dentro da dela. products[].externalId
+  // NÃO serve: a API reescreve esse campo com um id interno.
+  const meta = payload.data?.metadata;
+  const salaoId = meta?.metadata?.salao_id
+    ?? meta?.salao_id
+    ?? payload.data?.externalId;
   if (!salaoId) {
     return NextResponse.json({ ok: false, error: "Evento sem externalId." }, { status: 400 });
   }
 
-  const planoBruto = payload.data?.metadata?.plano;
+  const planoBruto = meta?.metadata?.plano ?? meta?.plano;
   const plano      = planoBruto && isPlanoKey(planoBruto) ? planoBruto : null;
 
   // ── Persistência ───────────────────────────────────────────

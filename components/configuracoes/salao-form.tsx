@@ -9,10 +9,11 @@ const initialState: ConfigState = { ok: false };
 type Props = {
   nome:              string;
   telefoneWhatsapp:  string | null;
+  documento:         string | null;
   podeEditar:        boolean;
 };
 
-export function SalaoForm({ nome, telefoneWhatsapp, podeEditar }: Props) {
+export function SalaoForm({ nome, telefoneWhatsapp, documento, podeEditar }: Props) {
   const [state, formAction, isPending] = useActionState(atualizarSalao, initialState);
 
   return (
@@ -65,6 +66,34 @@ export function SalaoForm({ nome, telefoneWhatsapp, podeEditar }: Props) {
           <p className="text-xs mt-1.5" style={{ color: "var(--color-error)" }}>{state.fieldErrors.telefone_whatsapp}</p>
         )}
         <p className="text-xs text-on-surface-variant mt-1.5">Só números, com DDD.</p>
+      </div>
+
+      <div>
+        <label htmlFor="documento" className="block text-sm font-medium text-on-surface mb-1.5">
+          CPF ou CNPJ
+        </label>
+        <input
+          id="documento"
+          name="documento"
+          type="text"
+          inputMode="numeric"
+          maxLength={14}
+          placeholder="Somente números"
+          defaultValue={documento ?? ""}
+          disabled={!podeEditar}
+          aria-invalid={state.fieldErrors?.documento ? "true" : undefined}
+          className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-all-custom text-on-surface placeholder-on-surface-variant disabled:opacity-50"
+          style={{
+            background: "rgba(255,255,255,0.06)",
+            border: state.fieldErrors?.documento ? "1px solid var(--color-error)" : "1px solid rgba(255,255,255,0.1)",
+          }}
+        />
+        {state.fieldErrors?.documento && (
+          <p className="text-xs mt-1.5" style={{ color: "var(--color-error)" }}>{state.fieldErrors.documento}</p>
+        )}
+        <p className="text-xs text-on-surface-variant mt-1.5">
+          Necessário para emitir a cobrança da assinatura.
+        </p>
       </div>
 
       {state.message && (

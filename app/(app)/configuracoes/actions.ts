@@ -14,6 +14,11 @@ const schema = z.object({
     (v) => (typeof v === "string" ? v.replace(/\D/g, "") : v),
     z.string().regex(/^\d{10,11}$/, "Telefone inválido (DDD + número)").or(z.literal("")).optional(),
   ),
+  // CPF (11) ou CNPJ (14) — exigido pelo AbacatePay para emitir a cobrança
+  documento: z.preprocess(
+    (v) => (typeof v === "string" ? v.replace(/\D/g, "") : v),
+    z.string().regex(/^(\d{11}|\d{14})$/, "Informe um CPF (11) ou CNPJ (14 dígitos)").or(z.literal("")).optional(),
+  ),
 });
 
 export type ConfigState = {
@@ -34,6 +39,7 @@ export async function atualizarSalao(
   const parsed = schema.safeParse({
     nome:              formData.get("nome"),
     telefone_whatsapp: formData.get("telefone_whatsapp"),
+    documento:         formData.get("documento"),
   });
 
   if (!parsed.success) {
@@ -58,11 +64,13 @@ export async function atualizarSalao(
   if (!u) return { ok: false, message: "Sua conta não está vinculada a um salão." };
 
   const whatsapp = parsed.data.telefone_whatsapp;
+  const doc      = parsed.data.documento;
   const { error } = await supabase
     .from("saloes")
     .update({
       nome:              parsed.data.nome,
       telefone_whatsapp: whatsapp && whatsapp !== "" ? whatsapp : null,
+      documento:         doc && doc !== "" ? doc : null,
     })
     .eq("id", u.salao_id);
 
@@ -97,13 +105,35 @@ export async function iniciarAssinatura(
 
   const { data: u } = await supabase
     .from("usuarios")
-    .select("salao_id, role")
+    .select("salao_id, role, nome, email")
     .eq("id", user.id)
-    .maybeSingle<{ salao_id: string; role: string }>();
+    .maybeSingle<{ salao_id: string; role: string; nome: string; email: string }>();
 
   if (!u) return { ok: false, message: "Sua conta não está vinculada a um salão." };
   if (u.role !== "dono") {
     return { ok: false, message: "Apenas o dono do salão pode contratar um plano." };
+  }
+
+  // O AbacatePay exige documento e telefone do pagador para emitir a
+  // cobrança. Se faltarem, avisamos onde preencher em vez de deixar a
+  // API devolver um erro técnico.
+  const { data: salao } = await supabase
+    .from("saloes")
+    .select("documento, telefone_whatsapp")
+    .eq("id", u.salao_id)
+    .maybeSingle<{ documento: string | null; telefone_whatsapp: string | null }>();
+
+  const documento = salao?.documento ?? "";
+  const telefone  = salao?.telefone_whatsapp ?? "";
+
+  if (!documento || !telefone) {
+    const faltando = [!documento && "CPF/CNPJ", !telefone && "WhatsApp"]
+      .filter(Boolean)
+      .join(" e ");
+    return {
+      ok: false,
+      message: `Preencha ${faltando} em Dados do salão (acima) antes de assinar.`,
+    };
   }
 
   const h    = await headers();
@@ -115,6 +145,12 @@ export async function iniciarAssinatura(
     plano,
     salaoId: u.salao_id,
     baseUrl,
+    cliente: {
+      nome:      u.nome,
+      email:     u.email,
+      telefone,
+      documento,
+    },
   });
 
   if (!resultado.ok) {
