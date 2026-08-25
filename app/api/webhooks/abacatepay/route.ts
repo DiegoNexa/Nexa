@@ -27,16 +27,27 @@ export const dynamic = "force-dynamic";
  * públicas (mesmo motivo da migration 016).
  */
 
-// Eventos que alteram o estado da assinatura
-const EVENTOS: Record<string, "ativa" | "cancelada"> = {
-  "subscription.completed": "ativa",
-  "subscription.renewed":   "ativa",
-  "subscription.cancelled": "cancelada",
-  // Cobrança única — usada quando ABACATEPAY_MODO_AVULSO=1 (conta em
-  // modo de teste não cria produto recorrente). Ativa o salão do mesmo
-  // jeito, mas não renova sozinho.
-  "billing.paid":           "ativa",
-};
+/**
+ * Classifica o evento pelo SENTIDO, não pelo nome exato.
+ *
+ * O AbacatePay tem webhook v1 e v2 com nomenclaturas diferentes (o
+ * "billing.paid" documentado, por exemplo, não existe na v2), e a doc
+ * não lista os nomes da v2. Casar por palavra-chave faz o endpoint
+ * funcionar nas duas versões sem depender de descobrir cada nome.
+ *
+ * Cobre tanto os nomes conhecidos (billing.paid,
+ * subscription.completed/renewed/cancelled) quanto variações
+ * plausíveis (payment.succeeded, charge.approved, pix.pago...).
+ */
+function classificarEvento(evento: string): "ativa" | "cancelada" | null {
+  const e = evento.toLowerCase();
+
+  // Negativos primeiro: "cancelled" e "failed" são mais específicos
+  if (/cancel|refund|chargeback|estorn|fail|expir|overdue/.test(e)) return "cancelada";
+  if (/paid|pago|complet|succe|renew|approv|confirm|authoriz/.test(e)) return "ativa";
+
+  return null;
+}
 
 /** Comparação em tempo constante, segura para tamanhos diferentes */
 function seguroIgual(a: string, b: string): boolean {
@@ -125,8 +136,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Payload sem id/event." }, { status: 400 });
   }
 
-  const novoStatus = EVENTOS[evento];
-  // Evento que não nos interessa: responde 200 pra não ficar reenviando
+  const novoStatus = classificarEvento(evento);
+  // Evento que não altera assinatura: responde 200 para o AbacatePay
+  // não reenviar. Devolve o nome recebido — assim, olhando o log do
+  // painel, dá para ver o nome real caso algo não seja reconhecido.
   if (!novoStatus) {
     return NextResponse.json({ ok: true, ignorado: evento });
   }
