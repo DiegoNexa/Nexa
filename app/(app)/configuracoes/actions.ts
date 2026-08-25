@@ -132,7 +132,7 @@ export async function iniciarAssinatura(
       .join(" e ");
     return {
       ok: false,
-      message: `Preencha ${faltando} em Dados do salão (acima) antes de assinar.`,
+      message: `Preencha ${faltando} antes de assinar.`,
     };
   }
 
@@ -159,4 +159,73 @@ export async function iniciarAssinatura(
 
   // Fora do try/catch: redirect() sinaliza via exceção
   redirect(resultado.url);
+}
+
+// ─── Dados de cobrança (usado na tela de bloqueio) ─────────
+const cobrancaSchema = z.object({
+  documento: z.preprocess(
+    (v) => (typeof v === "string" ? v.replace(/\D/g, "") : v),
+    z.string().regex(/^(\d{11}|\d{14})$/, "Informe um CPF (11) ou CNPJ (14 dígitos)"),
+  ),
+  telefone_whatsapp: z.preprocess(
+    (v) => (typeof v === "string" ? v.replace(/\D/g, "") : v),
+    z.string().regex(/^\d{10,11}$/, "Telefone inválido (DDD + número)"),
+  ),
+});
+
+/**
+ * Salva só documento e WhatsApp — os dois campos que o AbacatePay
+ * exige para emitir a cobrança.
+ *
+ * Existe separado de `atualizarSalao` porque a tela /assinatura é a
+ * ÚNICA acessível para um salão bloqueado: se o dono precisasse ir até
+ * Configurações (que fica atrás do bloqueio) para preencher o CPF,
+ * nunca conseguiria assinar.
+ */
+export async function salvarDadosCobranca(
+  _prev: ConfigState,
+  formData: FormData,
+): Promise<ConfigState> {
+  const parsed = cobrancaSchema.safeParse({
+    documento:         formData.get("documento"),
+    telefone_whatsapp: formData.get("telefone_whatsapp"),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors: ConfigState["fieldErrors"] = {};
+    for (const issue of parsed.error.issues) {
+      const key = issue.path[0] as keyof z.infer<typeof schema>;
+      if (!fieldErrors[key]) fieldErrors[key] = issue.message;
+    }
+    return { ok: false, message: "Corrija os campos destacados.", fieldErrors };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Sessão expirada." };
+
+  const { data: u } = await supabase
+    .from("usuarios")
+    .select("salao_id, role")
+    .eq("id", user.id)
+    .maybeSingle<{ salao_id: string; role: string }>();
+
+  if (!u) return { ok: false, message: "Sua conta não está vinculada a um salão." };
+  if (u.role !== "dono") {
+    return { ok: false, message: "Apenas o dono do salão pode preencher os dados de cobrança." };
+  }
+
+  const { error } = await supabase
+    .from("saloes")
+    .update({
+      documento:         parsed.data.documento,
+      telefone_whatsapp: parsed.data.telefone_whatsapp,
+    })
+    .eq("id", u.salao_id);
+
+  if (error) return { ok: false, message: `Não foi possível salvar: ${error.message}` };
+
+  revalidatePath("/assinatura");
+  revalidatePath("/configuracoes");
+  return { ok: true, message: "Dados salvos. Agora escolha um plano." };
 }
