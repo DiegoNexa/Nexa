@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { PlanosCards } from "@/components/configuracoes/planos-cards";
-import { DadosCobrancaForm } from "@/components/assinatura/dados-cobranca-form";
 import { logoutAction } from "@/app/(app)/dashboard/actions";
 import {
   acessoBloqueado,
@@ -18,8 +17,6 @@ export const metadata: Metadata = {
 
 type Salao = {
   nome:                     string;
-  documento:                string | null;
-  telefone_whatsapp:        string | null;
   plano:                    PlanoSalao;
   assinatura_status:        AssinaturaStatus;
   trial_termina_em:         string;
@@ -40,7 +37,7 @@ export default async function AssinaturaPage() {
 
   const { data: usuario } = await supabase
     .from("usuarios")
-    .select("role, saloes(nome, documento, telefone_whatsapp, plano, assinatura_status, trial_termina_em, assinatura_atualizada_em)")
+    .select("role, saloes(nome, plano, assinatura_status, trial_termina_em, assinatura_atualizada_em)")
     .eq("id", user.id)
     .single<{ role: string; saloes: Salao | null }>();
 
@@ -52,11 +49,6 @@ export default async function AssinaturaPage() {
   if (!acessoBloqueado(salao)) redirect("/configuracoes");
 
   const ehDono = usuario?.role === "dono";
-
-  // O AbacatePay exige documento e telefone para emitir a cobrança.
-  // Como esta é a única tela que um salão bloqueado alcança, os campos
-  // são coletados aqui — em Configurações ficariam inacessíveis.
-  const dadosCompletos = Boolean(salao.documento && salao.telefone_whatsapp);
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
@@ -107,23 +99,17 @@ export default async function AssinaturaPage() {
 
           {ehDono ? (
             <>
-              {!dadosCompletos && (
-                <DadosCobrancaForm
-                  documento={salao.documento}
-                  telefone={salao.telefone_whatsapp}
-                />
-              )}
               <PlanosCards
                 planoAtual={salao.plano}
                 assinaturaAtiva={false}
-                podeAssinar={dadosCompletos}
+                podeAssinar
               />
               <div className="flex items-center justify-center gap-4 flex-wrap mt-5 text-xs text-on-surface-variant">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-primary" style={{ fontSize: "16px" }}>
                     lock
                   </span>
-                  Pagamento seguro via AbacatePay
+                  Pagamento seguro via Stripe
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-primary" style={{ fontSize: "16px" }}>

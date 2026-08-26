@@ -129,107 +129,64 @@ git push
 
 ---
 
-## 💳 Ativar cobrança (AbacatePay) — mais recente
+## 💳 Ativar cobrança (Stripe) — mais recente
 
-O código da assinatura está pronto, mas **não cobra nada até estes passos**.
+Migramos do AbacatePay para a Stripe. Motivo: a API do AbacatePay
+divergia da documentação em vários pontos (evento `billing.paid`
+inexistente na v2, `externalId` interpretado como cliente, produto
+recorrente indisponível em modo de teste, chave com "version
+mismatch"). A Stripe funcionou de primeira.
 
-### 🔒 O bloqueio está ATIVO
-Sem assinatura válida, o app inteiro fica inacessível para o salão — o usuário
-é levado para `/assinatura`. Regra em `acessoBloqueado()`
-([`lib/planos.ts`](lib/planos.ts)):
+**Trade-off consciente:** perde-se o PIX a R$0,80 fixo. A Stripe cobra
+~3,99% + R$0,39 no cartão (~R$8,33 no plano Premium). PIX na Stripe
+exige ativação à parte e **não** funciona em assinatura recorrente.
 
-| Status | Acesso |
-|---|---|
-| `ativa` | liberado |
-| `trial` | liberado até `trial_termina_em` (30 dias) |
-| `inadimplente` | liberado por mais **3 dias** (`GRACA_DIAS`), depois bloqueia |
-| `cancelada` | bloqueado |
+### 🔒 O bloqueio continua ATIVO
+Regra inalterada em `acessoBloqueado()` ([`lib/planos.ts`](lib/planos.ts)):
+`ativa` livre · `trial` até vencer · `inadimplente` +3 dias de graça ·
+`cancelada` bloqueado. O link público `/agendar/[slug]` segue no ar.
 
-**Continua funcionando mesmo bloqueado:** o link público `/agendar/[slug]`
-(os clientes finais do salão não têm culpa) e o webhook — é ele que
-desbloqueia quando o pagamento entra.
-
-> ⚠️ **Risco a monitorar:** se o webhook falhar, um cliente que pagou fica
-> travado. Antes de confiar 100% no bloqueio, confirme em produção que o
-> webhook está atualizando `saloes.assinatura_status`. Para destravar alguém
-> na emergência, rode no SQL Editor:
-> `update saloes set assinatura_status='ativa', plano='profissional' where id='<uuid>';`
-
-### ⚠️ Antes de tudo: confirmar com o suporte do AbacatePay
-1. **Assinatura recorrente aceita PIX?** A página comercial anuncia PIX a
-   R$0,80/parcela, mas a doc de `POST /subscriptions/create` diz que `methods`
-   suporta **apenas CARD**. Hoje o código usa só `CARD`
-   (`METODOS_ASSINATURA` em [`lib/abacatepay.ts`](lib/abacatepay.ts)) — se
-   confirmarem PIX, é só incluir `"PIX"` nessa constante.
-2. **A recorrência PIX é automática (PIX Automático)** ou o cliente precisa
-   pagar manualmente todo mês? Se for manual, o churn involuntário pode anular
-   a economia da taxa.
-
-### 🧪 Atalho: testar sem produto recorrente (conta em modo de teste)
-Contas em modo de teste do AbacatePay não criam produto recorrente. Para validar
-o fluxo ponta a ponta agora, ligue o **modo avulso** — ele troca a assinatura por
-uma **cobrança única** e monta o produto a partir de [`lib/planos.ts`](lib/planos.ts),
-dispensando os produtos do painel:
-
+### Passo 1 — Chaves
+Stripe → **Developers → API keys** → copie a **Secret key**.
+Em `.env.local` e na Vercel:
 ```
-ABACATEPAY_MODO_AVULSO=1
+STRIPE_SECRET_KEY=sk_test_...     (produção: sk_live_...)
 ```
+Não é preciso cadastrar produto nem preço: o checkout usa `price_data`
+inline, com os valores de [`lib/planos.ts`](lib/planos.ts).
 
-Nesse modo os `ABACATEPAY_PRODUTO_*` **não são usados** e o pagamento é via PIX.
-O webhook trata `billing.paid` e ativa o salão igual à assinatura.
+### Passo 2 — Webhook
+Stripe → **Developers → Webhooks → Add endpoint**
+- URL: `https://SEU_APP.vercel.app/api/webhooks/stripe`
+- Eventos: `checkout.session.completed`, `invoice.paid`,
+  `invoice.payment_failed`, `customer.subscription.deleted`
+- Copie o **Signing secret** (`whsec_...`) para `STRIPE_WEBHOOK_SECRET`
 
-> ⚠️ **Não renova sozinho.** É só para teste. Ao ir para produção: remova a env
-> var, crie os 3 produtos MONTHLY (Passo 1) e preencha os IDs (Passo 2).
-
-### Passo 1 — Criar os produtos no painel
-Criar **3 produtos com ciclo MONTHLY**, com os mesmos preços de
-[`lib/planos.ts`](lib/planos.ts): Solo R$49 · Profissional R$99 · Premium R$199.
-Anotar o ID de cada um.
-
-### Passo 2 — Env vars (`.env.local` **e** Vercel)
+### Passo 3 — Testar local (sem deploy)
+A Stripe alcança o localhost pelo CLI:
+```bash
+stripe login
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
 ```
-ABACATEPAY_API_KEY=
-ABACATEPAY_WEBHOOK_SECRET=        # openssl rand -base64 32
-ABACATEPAY_PRODUTO_SOLO=
-ABACATEPAY_PRODUTO_PROFISSIONAL=
-ABACATEPAY_PRODUTO_PREMIUM=
-```
+O comando imprime um `whsec_...` — use ESSE no `.env.local` enquanto
+testa localmente. Depois: Configurações → Assinar → cartão de teste
+`4242 4242 4242 4242`, validade futura, CVC qualquer.
 
-### Passo 3 — Cadastrar o webhook
-URL: `https://SEU_APP.vercel.app/api/webhooks/abacatepay?secret=SEU_WEBHOOK_SECRET`
-(o mesmo valor de `ABACATEPAY_WEBHOOK_SECRET`). Eventos:
-`subscription.completed`, `subscription.renewed`, `subscription.cancelled`.
-
-> O webhook exige URL pública — só dá pra testar no deploy (ou com túnel local).
-
-### Passo 4 — Aplicar a migration 020
-[`supabase/migrations/020_assinaturas.sql`](supabase/migrations/020_assinaturas.sql).
-SQL Editor → cole → Run.
-
-### Passo 5 — Testar
-1. `/configuracoes` → deve mostrar "Teste grátis — faltam X dias" e os 3 planos
-2. Clicar em **Assinar** → redireciona pro checkout com o valor certo
-3. Pagar em modo de teste → conferir que `saloes.plano`/`assinatura_status`
-   mudaram e que apareceu uma linha em `pagamentos`
-4. **Reenviar o mesmo webhook** pelo painel → não pode duplicar nada (idempotência)
-
-### Passo 6 — Testar os avisos de renovação (dashboard)
-A faixa é progressiva (`avisoAssinatura()` em [`lib/planos.ts`](lib/planos.ts)).
-Para ver cada estado sem esperar 30 dias, force a data no SQL Editor e recarregue
-`/dashboard` (troque `<uuid>` pelo id do salão):
-
+### Passo 4 — Conferir
 ```sql
--- Nenhum aviso (trial folgado, > 7 dias)
-update saloes set assinatura_status='trial',
-  trial_termina_em = now() + interval '20 days' where id='<uuid>';
-
--- Azul "termina em 5 dias"           → interval '5 days'
--- Dourado "faltam 2 dias"            → interval '2 days'
--- Nenhum aviso (assinatura em dia)   → assinatura_status='ativa', plano='profissional'
+select assinatura_status, plano from saloes;
+select evento, valor, metodo from pagamentos order by created_at desc limit 5;
 ```
+Status deve virar `ativa` e aparecer linha em `pagamentos` com metodo `stripe`.
 
-> Trial **vencido** (`now() - interval '1 day'`) não mostra faixa: o acesso é
-> bloqueado antes e o usuário cai direto em `/assinatura`.
+> ⚠️ A conta está com `charges_enabled: false` — normal antes de
+> completar a ativação. Não impede testes em modo de teste, mas
+> **impede cobranças reais**: conclua o cadastro na Stripe antes do
+> lançamento.
+
+> A coluna `saloes.documento` (migration 021) deixou de ser
+> obrigatória — a Stripe coleta os dados do pagador no próprio
+> checkout. A coluna pode ficar; é útil para nota fiscal no futuro.
 
 ---
 

@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { criarCheckoutAssinatura } from "@/lib/abacatepay";
+import { criarCheckoutAssinatura } from "@/lib/stripe";
 import { isPlanoKey } from "@/lib/planos";
 
 const schema = z.object({
@@ -114,28 +114,6 @@ export async function iniciarAssinatura(
     return { ok: false, message: "Apenas o dono do salão pode contratar um plano." };
   }
 
-  // O AbacatePay exige documento e telefone do pagador para emitir a
-  // cobrança. Se faltarem, avisamos onde preencher em vez de deixar a
-  // API devolver um erro técnico.
-  const { data: salao } = await supabase
-    .from("saloes")
-    .select("documento, telefone_whatsapp")
-    .eq("id", u.salao_id)
-    .maybeSingle<{ documento: string | null; telefone_whatsapp: string | null }>();
-
-  const documento = salao?.documento ?? "";
-  const telefone  = salao?.telefone_whatsapp ?? "";
-
-  if (!documento || !telefone) {
-    const faltando = [!documento && "CPF/CNPJ", !telefone && "WhatsApp"]
-      .filter(Boolean)
-      .join(" e ");
-    return {
-      ok: false,
-      message: `Preencha ${faltando} antes de assinar.`,
-    };
-  }
-
   const h    = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
   if (!host) return { ok: false, message: "Não foi possível identificar o endereço do app." };
@@ -145,12 +123,7 @@ export async function iniciarAssinatura(
     plano,
     salaoId: u.salao_id,
     baseUrl,
-    cliente: {
-      nome:      u.nome,
-      email:     u.email,
-      telefone,
-      documento,
-    },
+    email:   u.email,   // pré-preenche o checkout da Stripe
   });
 
   if (!resultado.ok) {
