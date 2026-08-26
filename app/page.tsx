@@ -6,21 +6,45 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LampContainer } from "@/components/ui/lamp";
 import { GoldBorderButton } from "@/components/ui/gold-border-button";
 import { GlowCard } from "@/components/ui/spotlight-card";
+import { PLANOS, PERIODOS, precoPorMes, type PlanoKey } from "@/lib/planos";
 
 type Period = "mensal" | "semestral" | "anual";
 
-const PERIODS: { key: Period; label: string; badge?: string }[] = [
-  { key: "anual",     label: "Anual",     badge: "-30%" },
-  { key: "semestral", label: "Semestral", badge: "-15%" },
-  { key: "mensal",    label: "Mensal" },
-];
+/**
+ * Períodos e preços vêm de lib/planos.ts — a MESMA fonte que o checkout
+ * da Stripe usa. Antes a landing tinha números próprios e anunciava
+ * -30%/-15% enquanto o sistema cobrava -20%/-5%: quem assinasse o anual
+ * do Solo veria R$34 aqui e pagaria R$39,17.
+ */
+const PERIODS: { key: Period; label: string; badge?: string }[] =
+  [...PERIODOS].reverse().map((p) => ({ key: p.key, label: p.label, badge: p.selo }));
+
+/** Valor mensal exibido: exato, com centavos só quando houver */
+function mensalidade(plano: PlanoKey, periodo: Period): string {
+  const v = precoPorMes(PLANOS[plano], periodo);
+  // Inteiro sai limpo ("49"); com centavos sai sempre com 2 casas
+  // ("46,50" e não "46,5").
+  const casas = Number.isInteger(v) ? 0 : 2;
+  return v.toLocaleString("pt-BR", {
+    minimumFractionDigits: casas,
+    maximumFractionDigits: casas,
+  });
+}
+
+function precos(plano: PlanoKey) {
+  return {
+    mensal:    mensalidade(plano, "mensal"),
+    semestral: mensalidade(plano, "semestral"),
+    anual:     mensalidade(plano, "anual"),
+  };
+}
 
 const nexaPlans = [
   {
     name: "Solo",
     tag: "Plano Solo",
     professionals: "1 profissional",
-    price: { mensal: 49, semestral: 42, anual: 34 },
+    price: precos("solo"),
     description: "Para autônomas que querem organizar a agenda e ter link público de agendamento.",
     popular: false,
     features: ["Agenda completa", "Link público de agendamento", "Lembretes no dashboard", "Aniversariantes do mês", "Estoque básico", "Relatórios básicos"],
@@ -31,7 +55,7 @@ const nexaPlans = [
     name: "Profissional",
     tag: "Mais Popular",
     professionals: "Até 5 profissionais",
-    price: { mensal: 99, semestral: 84, anual: 69 },
+    price: precos("profissional"),
     description: "O mais escolhido por salões que precisam de comissões, equipe e relatórios.",
     popular: true,
     features: ["Tudo do Solo", "Gestão de equipe", "Comissões automáticas", "Relatórios completos", "Aniversariantes"],
@@ -42,7 +66,7 @@ const nexaPlans = [
     name: "Premium",
     tag: "Plano Pro",
     professionals: "Profissionais ilimitados",
-    price: { mensal: 199, semestral: 169, anual: 139 },
+    price: precos("premium"),
     description: "Para salões consolidados com múltiplas unidades e gestão profissional.",
     popular: false,
     features: ["Tudo do Profissional", "Relatórios avançados"],
