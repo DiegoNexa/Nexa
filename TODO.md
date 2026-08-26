@@ -146,6 +146,20 @@ Regra inalterada em `acessoBloqueado()` ([`lib/planos.ts`](lib/planos.ts)):
 `ativa` livre · `trial` até vencer · `inadimplente` +3 dias de graça ·
 `cancelada` bloqueado. O link público `/agendar/[slug]` segue no ar.
 
+### Periodicidades disponíveis
+Mensal (cheio) · Semestral (**-5%**) · Anual (**-20%**). O seletor fica
+acima dos cards de plano; o preço exibido é sempre **por mês**, para os
+períodos serem comparáveis, com o total cobrado logo abaixo.
+
+| Plano | Mensal | Semestral | Anual |
+|---|---|---|---|
+| Solo | R$ 49 | R$ 279 | R$ 470 |
+| Profissional | R$ 99 | R$ 564 | R$ 950 |
+| Premium | R$ 199 | R$ 1.134 | R$ 1.910 |
+
+Valores calculados em [`lib/planos.ts`](lib/planos.ts) a partir do preço
+mensal — mudar o desconto ali muda tudo, inclusive o que a Stripe cobra.
+
 ### Passo 1 — Chaves
 Stripe → **Developers → API keys** → copie a **Secret key**.
 Em `.env.local` e na Vercel:
@@ -157,7 +171,7 @@ inline, com os valores de [`lib/planos.ts`](lib/planos.ts).
 
 ### Passo 2 — Webhook
 Stripe → **Developers → Webhooks → Add endpoint**
-- URL: `https://SEU_APP.vercel.app/api/webhooks/stripe`
+- URL: `https://nexa-web-pi.vercel.app/api/webhooks/stripe`
 - Eventos: `checkout.session.completed`, `invoice.paid`,
   `invoice.payment_failed`, `customer.subscription.deleted`
 - Copie o **Signing secret** (`whsec_...`) para `STRIPE_WEBHOOK_SECRET`

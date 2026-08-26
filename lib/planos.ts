@@ -4,9 +4,9 @@
  * Usado pela tela de Configurações (assinatura) e pela landing —
  * evita que o preço anunciado divirja do preço cobrado.
  *
- * ⚠️ O valor efetivamente cobrado vive no PRODUTO cadastrado no
- * painel do AbacatePay (o checkout referencia o produto por ID, não
- * envia o valor). Ao mudar um preço aqui, mude também no painel.
+ * Esta é a fonte da verdade do preço: o checkout da Stripe usa
+ * `price_data` inline, então mudar um valor aqui já muda o que é
+ * cobrado — não há produto a sincronizar em painel nenhum.
  */
 
 export type PlanoKey = "solo" | "profissional" | "premium";
@@ -249,4 +249,50 @@ export function avisoAssinatura(s: EstadoAssinatura): Aviso | null {
         cta:    "Reativar",
       };
   }
+}
+
+// ─── Periodicidade da assinatura ───────────────────────────
+
+export type Periodicidade = "mensal" | "semestral" | "anual";
+
+/**
+ * Desconto por compromisso maior. O anual equivale a pagar ~9,6 meses
+ * pelos 12 — vale o desconto porque antecipa o caixa e reduz o churn
+ * (o cliente não cancela no segundo mês).
+ */
+export const PERIODOS: {
+  key: Periodicidade;
+  label: string;
+  meses: number;
+  desconto: number;   // 0 a 1
+  selo?: string;
+}[] = [
+  { key: "mensal",    label: "Mensal",    meses: 1,  desconto: 0    },
+  { key: "semestral", label: "Semestral", meses: 6,  desconto: 0.05, selo: "-5%"  },
+  { key: "anual",     label: "Anual",     meses: 12, desconto: 0.20, selo: "-20%" },
+];
+
+export function isPeriodicidade(v: string): v is Periodicidade {
+  return v === "mensal" || v === "semestral" || v === "anual";
+}
+
+export function periodoInfo(p: Periodicidade) {
+  return PERIODOS.find((x) => x.key === p) ?? PERIODOS[0]!;
+}
+
+/** Valor total cobrado de uma vez, já com desconto (arredondado ao real) */
+export function precoPeriodo(plano: Plano, p: Periodicidade): number {
+  const { meses, desconto } = periodoInfo(p);
+  return Math.round(plano.precoMensal * meses * (1 - desconto));
+}
+
+/** Quanto sai por mês naquele período — é o número que o cliente compara */
+export function precoPorMes(plano: Plano, p: Periodicidade): number {
+  return precoPeriodo(plano, p) / periodoInfo(p).meses;
+}
+
+/** Economia total em reais frente a pagar mês a mês (0 no mensal) */
+export function economia(plano: Plano, p: Periodicidade): number {
+  const { meses } = periodoInfo(p);
+  return plano.precoMensal * meses - precoPeriodo(plano, p);
 }

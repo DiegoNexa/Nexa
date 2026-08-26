@@ -1,8 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { iniciarAssinatura, type AssinaturaState } from "@/app/(app)/configuracoes/actions";
-import { PLANOS_LISTA, type Plano, type PlanoSalao } from "@/lib/planos";
+import {
+  PLANOS_LISTA,
+  PERIODOS,
+  precoPeriodo,
+  precoPorMes,
+  economia,
+  periodoInfo,
+  type Plano,
+  type PlanoSalao,
+  type Periodicidade,
+} from "@/lib/planos";
 
 const initialState: AssinaturaState = { ok: false };
 
@@ -15,27 +25,78 @@ type Props = {
 };
 
 export function PlanosCards({ planoAtual, assinaturaAtiva, podeAssinar }: Props) {
+  // O período é escolhido uma vez e vale para os três cards
+  const [periodo, setPeriodo] = useState<Periodicidade>("mensal");
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      {PLANOS_LISTA.map((p) => (
-        <PlanoCard
-          key={p.key}
-          plano={p}
-          atual={assinaturaAtiva && planoAtual === p.key}
-          podeAssinar={podeAssinar}
-        />
-      ))}
+    <div>
+      {/* Seletor de periodicidade */}
+      <div className="flex justify-center mb-4">
+        <div
+          className="inline-flex gap-1 p-1 rounded-xl"
+          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+        >
+          {PERIODOS.map((p) => {
+            const ativo = p.key === periodo;
+            return (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => setPeriodo(p.key)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] transition-all-custom"
+                style={
+                  ativo
+                    ? { background: "var(--color-primary)", color: "#1D1A05", fontWeight: 600 }
+                    : { color: "var(--color-on-surface-variant)", fontWeight: 500 }
+                }
+              >
+                {p.label}
+                {p.selo && (
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                    style={
+                      ativo
+                        ? { background: "rgba(29,26,5,0.15)", color: "#1D1A05" }
+                        : { background: "rgba(52,211,153,0.15)", color: "#34D399" }
+                    }
+                  >
+                    {p.selo}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {PLANOS_LISTA.map((p) => (
+          <PlanoCard
+            key={p.key}
+            plano={p}
+            periodo={periodo}
+            atual={assinaturaAtiva && planoAtual === p.key}
+            podeAssinar={podeAssinar}
+          />
+        ))}
+      </div>
     </div>
   );
 }
 
 function PlanoCard({
-  plano, atual, podeAssinar,
+  plano, periodo, atual, podeAssinar,
 }: {
-  plano: Plano; atual: boolean; podeAssinar: boolean;
+  plano: Plano; periodo: Periodicidade; atual: boolean; podeAssinar: boolean;
 }) {
   const action = iniciarAssinatura.bind(null, plano.key);
   const [state, formAction, isPending] = useActionState(action, initialState);
+
+  const info      = periodoInfo(periodo);
+  const total     = precoPeriodo(plano, periodo);
+  const porMes    = precoPorMes(plano, periodo);
+  const poupanca  = economia(plano, periodo);
+  const mensal    = periodo === "mensal";
 
   return (
     <div
@@ -63,12 +124,27 @@ function PlanoCard({
         ) : null}
       </div>
 
+      {/* Preço: sempre por mês, para os períodos serem comparáveis */}
       <p className="text-xl font-bold text-on-surface">
-        {BRL.format(plano.precoMensal)}
+        {BRL.format(porMes)}
         <span className="text-xs font-medium text-on-surface-variant">/mês</span>
       </p>
-      <p className="text-xs text-on-surface-variant mt-0.5">{plano.profissionais}</p>
-      <p className="text-xs text-on-surface-variant mt-2">{plano.descricao}</p>
+
+      {mensal ? (
+        <p className="text-xs text-on-surface-variant mt-0.5">cobrado mensalmente</p>
+      ) : (
+        <p className="text-xs text-on-surface-variant mt-0.5">
+          {BRL.format(total)} a cada {info.meses} meses
+        </p>
+      )}
+
+      {poupanca > 0 && (
+        <p className="text-[11px] font-semibold mt-1" style={{ color: "#34D399" }}>
+          economize {BRL.format(poupanca)}
+        </p>
+      )}
+
+      <p className="text-xs text-on-surface-variant mt-2">{plano.profissionais}</p>
 
       {/* Benefícios — vêm de lib/planos.ts (mesma fonte da landing) */}
       <ul className="mt-3 space-y-1.5 flex-1">
@@ -93,6 +169,8 @@ function PlanoCard({
 
       {podeAssinar && (
         <form action={formAction} className="mt-3">
+          {/* O período escolhido acompanha o envio */}
+          <input type="hidden" name="periodo" value={periodo} />
           <button
             type="submit"
             disabled={isPending || atual}

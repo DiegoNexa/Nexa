@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { criarCheckoutAssinatura } from "@/lib/stripe";
-import { isPlanoKey } from "@/lib/planos";
+import { isPlanoKey, isPeriodicidade } from "@/lib/planos";
 
 const schema = z.object({
   nome:              z.string().trim().min(2, "Nome muito curto").max(80, "Nome muito longo"),
@@ -94,10 +94,18 @@ export type AssinaturaState = { ok: boolean; message?: string };
 export async function iniciarAssinatura(
   plano: string,
   _prev: AssinaturaState,
+  formData: FormData,
 ): Promise<AssinaturaState> {
   if (!isPlanoKey(plano)) {
     return { ok: false, message: "Plano inválido." };
   }
+
+  // Periodicidade vem de um input oculto — o seletor fica nos cards
+  const periodoBruto = formData.get("periodo");
+  const periodo =
+    typeof periodoBruto === "string" && isPeriodicidade(periodoBruto)
+      ? periodoBruto
+      : "mensal";
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -121,6 +129,7 @@ export async function iniciarAssinatura(
 
   const resultado = await criarCheckoutAssinatura({
     plano,
+    periodo,
     salaoId: u.salao_id,
     baseUrl,
     email:   u.email,   // pré-preenche o checkout da Stripe

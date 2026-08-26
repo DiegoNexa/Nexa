@@ -15,7 +15,7 @@
  */
 
 import Stripe from "stripe";
-import { PLANOS, type PlanoKey } from "./planos";
+import { PLANOS, periodoInfo, precoPeriodo, type PlanoKey, type Periodicidade } from "./planos";
 
 /**
  * Métodos de pagamento aceitos.
@@ -45,6 +45,7 @@ export type CheckoutResultado =
 
 type CriarCheckoutParams = {
   plano:   PlanoKey;
+  periodo: Periodicidade;
   salaoId: string;   // vai na metadata — é o que amarra o webhook ao salão
   baseUrl: string;   // origem da aplicação, para as URLs de retorno
   email?:  string;   // pré-preenche o checkout, quando disponível
@@ -61,6 +62,13 @@ export async function criarCheckoutAssinatura(
   p: CriarCheckoutParams,
 ): Promise<CheckoutResultado> {
   const plano = PLANOS[p.plano];
+  const info  = periodoInfo(p.periodo);
+
+  // Stripe só tem interval month/year: semestral vira 6 meses.
+  const recurring: { interval: "month" | "year"; interval_count?: number } =
+    p.periodo === "anual"
+      ? { interval: "year" }
+      : { interval: "month", interval_count: info.meses };
 
   try {
     const sessao = await stripe().checkout.sessions.create({
@@ -72,10 +80,10 @@ export async function criarCheckoutAssinatura(
         quantity: 1,
         price_data: {
           currency:    "brl",
-          unit_amount: Math.round(plano.precoMensal * 100),
-          recurring:   { interval: "month" },
+          unit_amount: precoPeriodo(plano, p.periodo) * 100,
+          recurring,
           product_data: {
-            name:        `Nexa ${plano.nome}`,
+            name:        `Nexa ${plano.nome} · ${info.label}`,
             description: plano.descricao,
           },
         },
@@ -85,9 +93,9 @@ export async function criarCheckoutAssinatura(
       // Duas vias para o webhook achar o salão: a sessão e a assinatura
       // criada a partir dela (a renovação só carrega a da assinatura).
       client_reference_id: p.salaoId,
-      metadata:            { salao_id: p.salaoId, plano: p.plano },
+      metadata:            { salao_id: p.salaoId, plano: p.plano, periodo: p.periodo },
       subscription_data: {
-        metadata: { salao_id: p.salaoId, plano: p.plano },
+        metadata: { salao_id: p.salaoId, plano: p.plano, periodo: p.periodo },
       },
     });
 
