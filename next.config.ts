@@ -1,10 +1,16 @@
 import type { NextConfig } from "next";
 
 // Deriva o host do Supabase do env var. Build falha se faltar,
-// o que é proposital — o CSP precisa do host real.
-const SUPABASE_HOST = new URL(
-  process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://ldhtakklhxmrskqwpgzd.supabase.co",
-).host;
+// o que é proposital — o CSP precisa do host real. Sem fallback:
+// um default silencioso aponta o CSP pro projeto errado em produção.
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  throw new Error(
+    "NEXT_PUBLIC_SUPABASE_URL não definida. O CSP precisa do host real do " +
+      "Supabase. Defina em .env.local (dev) e nas env vars da Vercel (prod).",
+  );
+}
+
+const SUPABASE_HOST = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host;
 
 // Content Security Policy — limita o que o navegador pode carregar/executar.
 // Em dev, Next precisa de 'unsafe-eval' (HMR usa eval). 'unsafe-inline' em
