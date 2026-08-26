@@ -21,10 +21,14 @@ export type RecoverState = {
 // arbitrário.
 const ALLOWED_HOSTS = new Set([
   "localhost:3000",
-  "nexa.com.br",
+  "nexa-project2026.vercel.app",   // produção atual
+  "nexa.com.br",                   // domínio próprio (quando existir)
   "www.nexa.com.br",
 ]);
-const FALLBACK_HOST = "nexa.com.br";
+// Precisa apontar para um host que realmente responde: com um domínio
+// ainda não registrado como fallback, todo link de recuperação vindo de
+// um host desconhecido levaria a lugar nenhum.
+const FALLBACK_HOST = "nexa-project2026.vercel.app";
 
 export async function recoverAction(
   _prev: RecoverState,
