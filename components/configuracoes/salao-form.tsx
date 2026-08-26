@@ -92,7 +92,7 @@ export function SalaoForm({ nome, telefoneWhatsapp, documento, podeEditar }: Pro
           <p className="text-xs mt-1.5" style={{ color: "var(--color-error)" }}>{state.fieldErrors.documento}</p>
         )}
         <p className="text-xs text-on-surface-variant mt-1.5">
-          Necessário para emitir a cobrança da assinatura.
+          Usado em recibos e nota fiscal. Opcional.
         </p>
       </div>
 
