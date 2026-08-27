@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildLembreteAgendamento, enviarEmail } from "@/lib/email";
 
@@ -22,6 +23,15 @@ export const dynamic  = "force-dynamic";
  *
  * Resposta JSON com summary das execuções.
  */
+
+/** Comparação em tempo constante, segura para tamanhos diferentes */
+function seguroIgual(a: string, b: string): boolean {
+  const ba = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ba.length !== bb.length) return false;
+  return timingSafeEqual(ba, bb);
+}
+
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
@@ -31,8 +41,10 @@ export async function GET(request: Request) {
     );
   }
 
-  const auth = request.headers.get("authorization");
-  if (auth !== `Bearer ${secret}`) {
+  // Comparação em tempo constante: `!==` sai no primeiro byte diferente
+  // e, em tese, vaza o prefixo correto pelo tempo de resposta.
+  const auth = request.headers.get("authorization") ?? "";
+  if (!seguroIgual(auth, `Bearer ${secret}`)) {
     return NextResponse.json({ ok: false, error: "Não autorizado." }, { status: 401 });
   }
 

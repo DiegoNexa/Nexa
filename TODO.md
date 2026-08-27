@@ -4,6 +4,39 @@ Lista de pendências manuais antes de subir a Nexa em produção.
 
 ---
 
+## 🔴 SEGURANÇA — aplicar migration 022 AGORA
+
+Uma auditoria encontrou **vazamento de dados entre salões, ativo em
+produção**. As duas funções do cron ([`016`](supabase/migrations/016_cron_lembretes_funcoes.sql))
+foram concedidas a `authenticated` além de `service_role`:
+
+- `listar_lembretes_pendentes()` é `SECURITY DEFINER` e **não filtra por
+  salão** (foi feita para o cron varrer a base toda). Qualquer cliente
+  logado da Nexa pode chamar a RPC e ler **nome, e-mail e horário dos
+  clientes de TODOS os salões** — vazamento de base entre concorrentes e
+  violação de LGPD.
+- `marcar_lembrete_enviado(uuid)` não checa dono: dá para silenciar os
+  lembretes de outro salão.
+
+**Correção:** SQL Editor → cole [`supabase/migrations/022_seguranca.sql`](supabase/migrations/022_seguranca.sql) → Run.
+
+A mesma migration ainda:
+- Move a validação de "horário no futuro" para dentro do banco. Ela só
+  existia no app, e `anon` pode chamar a RPC direto pelo PostgREST —
+  dava para criar agendamento no passado e corromper folha/relatórios.
+- Limita a **3 agendamentos futuros por telefone** em cada salão, contra
+  quem tenta encher a agenda de horários falsos pelo link público.
+
+**Como confirmar que fechou** (SQL Editor):
+```sql
+set role authenticated;
+select * from listar_lembretes_pendentes();  -- deve dar permission denied
+reset role;
+```
+E o cron deve continuar funcionando normalmente (usa `service_role`).
+
+---
+
 ## 🚨 Pendência crítica de produção
 
 ### 📮 Trocar `EMAIL_FROM` quando o domínio for comprado

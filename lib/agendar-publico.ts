@@ -77,6 +77,9 @@ export function mapErroAgendamentoPublico(message: string): string {
   if (message.includes("profissional_invalido"))          return "Profissional inválido ou desativado.";
   if (message.includes("servico_invalido"))               return "Serviço inválido ou desativado.";
   if (message.includes("profissional_nao_atende_servico"))return "Este profissional não realiza esse serviço.";
+  if (message.includes("data_no_passado"))                return "Escolha um horário no futuro.";
+  if (message.includes("limite_agendamentos"))
+    return "Você já tem 3 horários marcados neste salão. Cancele um deles ou fale com o salão para marcar mais.";
   // EXCLUDE constraint
   if (message.includes("23P01") || message.includes("conflicting key"))
     return "Esse horário já está ocupado. Escolha outro.";
