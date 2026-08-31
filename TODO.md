@@ -4,6 +4,52 @@ Lista de pendências manuais antes de subir a Nexa em produção.
 
 ---
 
+## 📍 ONDE PARAMOS (10/08/2026)
+
+Estado verificado com testes reais, não de memória.
+
+### ✅ Concluído
+- **Migrations 006 → 021 aplicadas** no Supabase (confirmado consultando as tabelas)
+- **Vazamento de dados entre salões FECHADO** — `set role authenticated;
+  select * from listar_lembretes_pendentes();` devolve `permission denied`
+- **Cron intacto** após o revoke — testado local: `{"ok":true,...}`
+- **Stripe**: integração completa; 9 combinações plano × período validadas
+  contra a API; pagamento de teste real (R$99) aprovado
+- **Landing**: preços derivados de [`lib/planos.ts`](lib/planos.ts) e no ar
+- **Deploy**: `origin` (DiegoNexa/Nexa) e `nexaweb` (nexa-app-mx/nexa-web)
+  sincronizados. **A Vercel observa o `nexaweb`** — push só no origin não
+  chega em produção.
+
+### ⏳ Pendente — 4 ações de configuração (~15 min)
+
+| # | O quê | Onde | Efeito de não fazer |
+|---|---|---|---|
+| 1 | Terminar a **migration 022** (só os `revoke` rodaram; a função não) | Supabase SQL Editor | Dá para agendar no passado e encher a agenda |
+| 2 | `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` | Vercel + Redeploy | Quem pagar **não desbloqueia** (webhook em 500) |
+| 3 | Alinhar `CRON_SECRET` com o `.env.local` | Vercel | Cron de lembretes rejeitado (401) |
+| 4 | **Site URL** = `https://nexa-web-pi.vercel.app` | Supabase → Auth → URL Configuration | E-mail de cadastro aponta para localhost |
+
+**Item 1 — como fazer:** abrir [`022_seguranca.sql`](supabase/migrations/022_seguranca.sql),
+copiar **da linha 61 até o fim** (começa em `create or replace function
+public.criar_agendamento_publico(`) e rodar. Na primeira tentativa o texto
+foi truncado e só a metade de cima aplicou.
+
+**Como confirmar que o 1 funcionou** — chamar a RPC com slug inexistente e
+data no passado deve responder `data_no_passado` (e não `salao_nao_encontrado`,
+que é a resposta da função antiga).
+
+**Valores do item 2 e 3** ficam no `.env.local` (não versionado). O webhook
+da Stripe em modo teste já está cadastrado apontando para
+`https://nexa-web-pi.vercel.app/api/webhooks/stripe`.
+
+### 🔵 Dependem de terceiros
+- **Verificação da conta Stripe** (`charges_enabled: false`) — modo teste
+  funciona 100%; cobrança real só após aprovação deles
+- **Domínio próprio** (~R$40/ano) — sem ele o Resend só entrega no e-mail da
+  própria conta, então lembretes não chegam a clientes reais
+
+---
+
 ## 🔴 SEGURANÇA — aplicar migration 022 AGORA
 
 Uma auditoria encontrou **vazamento de dados entre salões, ativo em
