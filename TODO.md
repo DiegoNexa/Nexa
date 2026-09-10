@@ -24,19 +24,19 @@ Estado verificado com testes reais contra produção, não de memória.
   sincronizados. **A Vercel observa o `nexaweb`** — push só no origin não
   chega em produção.
 
-### 🔴 BLOQUEADOR — dois projetos Supabase diferentes
+### ✅ Verificado em produção (10/09/2026)
 
-| Onde | Projeto | Estado |
+Testes reais contra o projeto `rlxqgynqjkyughblxhdq`, não de memória:
+
+| O quê | Como foi provado | Resultado |
 |---|---|---|
-| `.env.local` (dev local) | `ldhtakklhxmrskqwpgzd` | **NXDOMAIN — não existe mais** |
-| Produção (Vercel) | `rlxqgynqjkyughblxhdq` | Vivo |
+| **Migration 022 aplicada** | RPC com slug inexistente + data 2 dias no passado | `data_no_passado` — a validação roda **no banco**, antes de procurar o salão |
+| **Migration 023 aplicada** | `login_bloqueado(array['email:…'])` com service_role | `false` (função existe e responde) |
+| **Vazamento entre salões fechado** | `listar_lembretes_pendentes()` com a chave pública | `42501 permission denied` |
+| **Cron intacto** | mesma função com `service_role` | HTTP 200 |
+| **Rate limit não é vetor de flood** | as 3 funções da 023 chamadas com chave pública | HTTP 401 nas três |
+| **`.env.local` corrigido** | host resolve e responde | OK |
 
-Descoberto pelo header CSP de produção, que é derivado da env var real da
-Vercel. Consequências: **o dev local aponta para um banco morto**, e não se
-sabe em qual projeto a migration 022 foi aplicada.
-
-Isso trava as migrations 022 e 023 — elas precisam ir para o projeto de
-**produção**.
 
 ### 🔒 BLOQUEADO — falta permissão no Supabase
 
@@ -76,22 +76,8 @@ Camadas, para não confundir:
 
 | # | O quê | Onde | Efeito de não fazer |
 |---|---|---|---|
-| 1 | Corrigir o `.env.local` para o projeto `rlxqgynqjkyughblxhdq` | arquivo local | **Dev local quebrado** (host atual dá NXDOMAIN) |
-| 2 | Corrigir `EMAIL_LOGO_URL` — aponta para o projeto morto | `.env.local` | Logo quebrada nos e-mails de lembrete |
-| 3 | Aplicar **migration 022** no projeto de produção | SQL Editor | Dá para agendar no passado e encher a agenda |
-| 4 | Aplicar **migration 023** | SQL Editor | Rate limit falha aberto — sem proteção a força bruta |
-| 5 | **Site URL** = `https://nexa-web-pi.vercel.app` | Auth → URL Configuration | E-mail de cadastro aponta para localhost |
-
-> ⚠️ Verificado em 10/09: o `.env.local` **ainda aponta** para
-> `ldhtakklhxmrskqwpgzd` (NXDOMAIN). Enquanto não trocar, não dá para
-> validar as migrations 022 e 023 de fora — nem rodar o projeto local.
-
-**Como confirmar a 022:** chamar `criar_agendamento_publico` com slug
-inexistente e data no passado deve responder `data_no_passado` (a função
-antiga responderia `salao_nao_encontrado`).
-
-**Como confirmar a 023:** `select login_bloqueado(array['email:x@x.com']);`
-deve responder `false`. Se der "function does not exist", não aplicou.
+| 1 | **Site URL** = `https://nexa-web-pi.vercel.app` | Auth → URL Configuration | E-mail de cadastro aponta para localhost |
+| 2 | Regra de rate limit por IP em `/login` *(opcional)* | Vercel → Firewall | Nenhuma barreira antes da aplicação; as outras duas camadas já cobrem o essencial |
 
 
 ### 🔵 Dependem de terceiros
@@ -109,7 +95,12 @@ deve responder `false`. Se der "function does not exist", não aplicou.
 
 ---
 
-## 🔴 SEGURANÇA — aplicar migration 022 AGORA
+## ✅ SEGURANÇA — migration 022 aplicada (resolvido em 10/09/2026)
+
+> Registro mantido para histórico. A falha abaixo **está fechada** —
+> confirmado por teste: a chave pública recebe `42501 permission denied`
+> em `listar_lembretes_pendentes()`, e a RPC de agendamento responde
+> `data_no_passado`. O texto original segue como contexto do que houve.
 
 Uma auditoria encontrou **vazamento de dados entre salões, ativo em
 produção**. As duas funções do cron ([`016`](supabase/migrations/016_cron_lembretes_funcoes.sql))
