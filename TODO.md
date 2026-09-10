@@ -4,49 +4,65 @@ Lista de pendências manuais antes de subir a Nexa em produção.
 
 ---
 
-## 📍 ONDE PARAMOS (10/08/2026)
+## 📍 ONDE PARAMOS (10/09/2026)
 
-Estado verificado com testes reais, não de memória.
+Estado verificado com testes reais contra produção, não de memória.
 
 ### ✅ Concluído
-- **Migrations 006 → 021 aplicadas** no Supabase (confirmado consultando as tabelas)
+- **Migrations 006 → 021 aplicadas** no Supabase
 - **Vazamento de dados entre salões FECHADO** — `set role authenticated;
   select * from listar_lembretes_pendentes();` devolve `permission denied`
-- **Cron intacto** após o revoke — testado local: `{"ok":true,...}`
-- **Stripe**: integração completa; 9 combinações plano × período validadas
-  contra a API; pagamento de teste real (R$99) aprovado
-- **Landing**: preços derivados de [`lib/planos.ts`](lib/planos.ts) e no ar
+- **Env vars da Vercel configuradas** *(verificado 10/09)* — o webhook rejeita
+  assinatura forjada com `No signatures found`, o que prova que
+  `STRIPE_SECRET_KEY` **e** `STRIPE_WEBHOOK_SECRET` estão lá; o cron em
+  produção responde `{"ok":true,...}` com o `CRON_SECRET` do `.env.local`
+- **Next 16.3.4** — 2 RCEs sem autenticação fechadas; `npm audit` 5 → 0
+- **Rate limit de login** escrito ([`023`](supabase/migrations/023_rate_limit_login.sql)
+  + [`lib/rate-limit-login.ts`](lib/rate-limit-login.ts)) — falta aplicar a migration
+- **Stripe**: 9 combinações plano × período validadas; pagamento teste real aprovado
 - **Deploy**: `origin` (DiegoNexa/Nexa) e `nexaweb` (nexa-app-mx/nexa-web)
   sincronizados. **A Vercel observa o `nexaweb`** — push só no origin não
   chega em produção.
 
-### ⏳ Pendente — 4 ações de configuração (~15 min)
+### 🔴 BLOQUEADOR — dois projetos Supabase diferentes
+
+| Onde | Projeto | Estado |
+|---|---|---|
+| `.env.local` (dev local) | `ldhtakklhxmrskqwpgzd` | **NXDOMAIN — não existe mais** |
+| Produção (Vercel) | `rlxqgynqjkyughblxhdq` | Vivo |
+
+Descoberto pelo header CSP de produção, que é derivado da env var real da
+Vercel. Consequências: **o dev local aponta para um banco morto**, e não se
+sabe em qual projeto a migration 022 foi aplicada.
+
+Isso trava as migrations 022 e 023 — elas precisam ir para o projeto de
+**produção**.
+
+### ⏳ Pendente
 
 | # | O quê | Onde | Efeito de não fazer |
 |---|---|---|---|
-| 1 | Terminar a **migration 022** (só os `revoke` rodaram; a função não) | Supabase SQL Editor | Dá para agendar no passado e encher a agenda |
-| 2 | `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` | Vercel + Redeploy | Quem pagar **não desbloqueia** (webhook em 500) |
-| 3 | Alinhar `CRON_SECRET` com o `.env.local` | Vercel | Cron de lembretes rejeitado (401) |
-| 4 | **Site URL** = `https://nexa-web-pi.vercel.app` | Supabase → Auth → URL Configuration | E-mail de cadastro aponta para localhost |
+| 1 | Confirmar o `<REF>` do projeto e corrigir o `.env.local` | Supabase → Settings → API | Dev local quebrado; migrations no projeto errado |
+| 2 | Aplicar **migration 022** no projeto de produção | SQL Editor | Dá para agendar no passado e encher a agenda |
+| 3 | Aplicar **migration 023** | SQL Editor | Rate limit falha aberto — sem proteção a força bruta |
+| 4 | **Site URL** = `https://nexa-web-pi.vercel.app` | Auth → URL Configuration | E-mail de cadastro aponta para localhost |
+| 5 | Conferir **Auth → Rate Limits** | Painel Supabase | Defaults nunca verificados |
+| 6 | Regra de rate limit por IP | Vercel → Firewall | Sem barreira antes da aplicação |
 
-**Item 1 — como fazer:** abrir [`022_seguranca.sql`](supabase/migrations/022_seguranca.sql),
-copiar **da linha 61 até o fim** (começa em `create or replace function
-public.criar_agendamento_publico(`) e rodar. Na primeira tentativa o texto
-foi truncado e só a metade de cima aplicou.
+**Como confirmar o item 2:** chamar `criar_agendamento_publico` com slug
+inexistente e data no passado deve responder `data_no_passado` (a função
+antiga responderia `salao_nao_encontrado`).
 
-**Como confirmar que o 1 funcionou** — chamar a RPC com slug inexistente e
-data no passado deve responder `data_no_passado` (e não `salao_nao_encontrado`,
-que é a resposta da função antiga).
-
-**Valores do item 2 e 3** ficam no `.env.local` (não versionado). O webhook
-da Stripe em modo teste já está cadastrado apontando para
-`https://nexa-web-pi.vercel.app/api/webhooks/stripe`.
+**Como confirmar o item 3:** errar a senha 10 vezes deve trocar a mensagem
+para "Muitas tentativas de login".
 
 ### 🔵 Dependem de terceiros
-- **Verificação da conta Stripe** (`charges_enabled: false`) — modo teste
-  funciona 100%; cobrança real só após aprovação deles
+- **Verificação da conta Stripe** (`charges_enabled: false`) — a conta está
+  como `individual` (CPF). Enquanto a verificação não sai, ainda dá para
+  trocar para CNPJ; **depois trava para sempre**
 - **Domínio próprio** (~R$40/ano) — sem ele o Resend só entrega no e-mail da
   própria conta, então lembretes não chegam a clientes reais
+- **Bot protection** — depende de chave do Cloudflare Turnstile
 
 ---
 
