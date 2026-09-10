@@ -38,28 +38,71 @@ sabe em qual projeto a migration 022 foi aplicada.
 Isso trava as migrations 022 e 023 — elas precisam ir para o projeto de
 **produção**.
 
-### ⏳ Pendente
+### 🔒 BLOQUEADO — falta permissão no Supabase
+
+Estes dois **não dependem de código**. A conta atual não tem permissão
+para alterá-los; é preciso pedir acesso ao dono da organização no
+Supabase (ou pedir que ele faça).
+
+| O quê | Onde | Por que importa |
+|---|---|---|
+| **SMTP próprio (Resend)** | Authentication → Emails → SMTP Settings | Hoje o limite é **2 e-mails/hora** no projeto inteiro — SMTP de desenvolvimento. O 3º salão que se cadastrar numa hora **não recebe a confirmação**. Trava o lançamento. |
+| **Baixar sign-ups/sign-ins de 30 para 15** | Authentication → Rate Limits | É o **único** controle no caminho realmente exposto (ver nota abaixo) |
+
+**Valores do SMTP**, para quando liberar:
+```
+Host     : smtp.resend.com
+Port     : 465
+Username : resend
+Password : <RESEND_API_KEY, está no .env.local>
+Sender   : onboarding@resend.dev   (trocar quando o domínio entrar)
+```
+
+**Por que o limite de sign-in importa mais que a regra na Vercel:** a chave
+publishable é pública por design (vai no bundle). Um atacante pode chamar
+`POST supabase.co/auth/v1/token?grant_type=password` **direto**, sem passar
+pelo formulário do site. Esse caminho não passa pela Vercel nem pelo
+limitador da migration 023 — só o campo do Supabase o alcança.
+
+Camadas, para não confundir:
+
+| Caminho de ataque | Quem protege |
+|---|---|
+| Formulário de login do site | Migration 023 — 10 falhas / 15 min |
+| API do Supabase direto | Rate Limits do painel — **bloqueado, ainda em 30** |
+| Volume bruto | Vercel → Firewall (opcional) |
+
+### ⏳ Pendente — dependem só de você
 
 | # | O quê | Onde | Efeito de não fazer |
 |---|---|---|---|
-| 1 | Confirmar o `<REF>` do projeto e corrigir o `.env.local` | Supabase → Settings → API | Dev local quebrado; migrations no projeto errado |
-| 2 | Aplicar **migration 022** no projeto de produção | SQL Editor | Dá para agendar no passado e encher a agenda |
-| 3 | Aplicar **migration 023** | SQL Editor | Rate limit falha aberto — sem proteção a força bruta |
-| 4 | **Site URL** = `https://nexa-web-pi.vercel.app` | Auth → URL Configuration | E-mail de cadastro aponta para localhost |
-| 5 | Conferir **Auth → Rate Limits** | Painel Supabase | Defaults nunca verificados |
-| 6 | Regra de rate limit por IP | Vercel → Firewall | Sem barreira antes da aplicação |
+| 1 | Corrigir o `.env.local` para o projeto `rlxqgynqjkyughblxhdq` | arquivo local | **Dev local quebrado** (host atual dá NXDOMAIN) |
+| 2 | Corrigir `EMAIL_LOGO_URL` — aponta para o projeto morto | `.env.local` | Logo quebrada nos e-mails de lembrete |
+| 3 | Aplicar **migration 022** no projeto de produção | SQL Editor | Dá para agendar no passado e encher a agenda |
+| 4 | Aplicar **migration 023** | SQL Editor | Rate limit falha aberto — sem proteção a força bruta |
+| 5 | **Site URL** = `https://nexa-web-pi.vercel.app` | Auth → URL Configuration | E-mail de cadastro aponta para localhost |
 
-**Como confirmar o item 2:** chamar `criar_agendamento_publico` com slug
+> ⚠️ Verificado em 10/09: o `.env.local` **ainda aponta** para
+> `ldhtakklhxmrskqwpgzd` (NXDOMAIN). Enquanto não trocar, não dá para
+> validar as migrations 022 e 023 de fora — nem rodar o projeto local.
+
+**Como confirmar a 022:** chamar `criar_agendamento_publico` com slug
 inexistente e data no passado deve responder `data_no_passado` (a função
 antiga responderia `salao_nao_encontrado`).
 
-**Como confirmar o item 3:** errar a senha 10 vezes deve trocar a mensagem
-para "Muitas tentativas de login".
+**Como confirmar a 023:** `select login_bloqueado(array['email:x@x.com']);`
+deve responder `false`. Se der "function does not exist", não aplicou.
+
 
 ### 🔵 Dependem de terceiros
 - **Verificação da conta Stripe** (`charges_enabled: false`) — a conta está
   como `individual` (CPF). Enquanto a verificação não sai, ainda dá para
   trocar para CNPJ; **depois trava para sempre**
+  - Taxa real medida nas transações: **3,99% + R$ 0,39** por cobrança.
+    Idêntica para CPF ou CNPJ — a Stripe não precifica por tipo de conta.
+    O que muda é a tributação do nosso lado (IRPF vs. nota fiscal).
+  - O R$ 0,39 fixo pesa mais no ticket pequeno: Solo mensal perde 4,79%,
+    Profissional anual perde 4,03%. Mais um argumento para o plano anual.
 - **Domínio próprio** (~R$40/ano) — sem ele o Resend só entrega no e-mail da
   própria conta, então lembretes não chegam a clientes reais
 - **Bot protection** — depende de chave do Cloudflare Turnstile
