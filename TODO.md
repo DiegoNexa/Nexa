@@ -40,6 +40,78 @@ Testes reais contra o projeto `rlxqgynqjkyughblxhdq`, não de memória:
 | **`.env.local` corrigido** | host resolve e responde | OK |
 
 
+### 🔄 TROCA DE CONTA STRIPE — em andamento (decidido em 14/09/2026)
+
+**Motivo:** a conta `acct_1TS3AZ…` foi aberta como pessoa física com o CPF de
+teste `000.000.000-00`. A verificação reprovou e, no Brasil, o CPF não pode ser
+alterado depois de enviado. Decisão: apagar e abrir conta nova.
+
+**Enquanto não houver conta nova:** o checkout em produção responde erro de
+chave inválida. Salões em teste grátis não são afetados; ninguém consegue
+assinar. **Nenhum código precisa mudar para a troca.**
+
+#### 1. Ao abrir a conta nova — preencher com cuidado (trava de novo)
+- Pessoa física (CPF) ou empresa (CNPJ): decidir **antes**
+- **CPF/CNPJ real.** `000.000.000-00` é dado de teste e reprova na hora
+- **Nome completo igual ao documento**, com todos os sobrenomes
+- Data de nascimento e endereço iguais aos da Receita
+- CPF regular: servicos.receita.fazenda.gov.br → situação cadastral
+- Revisar tudo **antes** de enviar a verificação
+
+#### 2. Configuração a replicar (lida da conta antiga em 14/09)
+| Campo | Onde no painel | Valor |
+|---|---|---|
+| Nome público | Configurações → Dados públicos | `Nexa` |
+| Site | idem | `https://nexa-web-pi.vercel.app` |
+| E-mail de suporte | idem | **estava vazio — preencher** |
+| Telefone de suporte | idem | o mesmo da conta antiga |
+| Descritor na fatura | idem | `ASSINATURA NEXA` |
+| Ramo (MCC) | cadastro da empresa | 7379 — serviços de informática |
+| Cor da marca | Configurações → Marca | `#0E0C02` |
+| Ícone e logo | idem | enviar de novo (arquivos não migram) |
+| Métodos de pagamento | Configurações → Métodos de pagamento | cartão (Apple Pay estava ligado; opcional) |
+
+País BR e moeda BRL vêm do cadastro.
+
+#### 3. O que trocar, em ordem
+| # | Onde | O quê | Quem |
+|---|---|---|---|
+| 1 | `.env.local` | `STRIPE_SECRET_KEY` = `sk_test_` da conta nova | usuário |
+| 2 | conta nova (teste) | `node scripts/stripe-conta.mjs criar-webhook --gravar-env` — cria o endpoint com os 4 eventos e grava o `whsec_` | Claude |
+| 3 | Vercel → Production | `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` de **teste** novos → Redeploy | usuário |
+| 4 | verificação | `node scripts/stripe-conta.mjs verificar` — conta, perfil, webhook, se a produção aceita o segredo, checkout | Claude |
+| 5 | após validação | modo real: webhook (`criar-webhook` com a `sk_live_` no ambiente) + `sk_live_` e `whsec_` real **só em Production** → Redeploy | usuário + Claude |
+| 6 | verificação real | `verificar` com a `sk_live_` no ambiente (comando no topo do script) | usuário |
+| 7 | teste real | Solo mensal R$ 49 → confirmar desbloqueio → cancelar assinatura → reembolsar | usuário |
+
+**Conferir a conta pela chave:** o trecho depois de `_51` identifica a conta.
+Teste e real da mesma conta começam iguais: `sk_test_51XXXX…` e `sk_live_51XXXX…`.
+
+**Achado 14/09 — segredo divergente:** o `STRIPE_WEBHOOK_SECRET` da Vercel (Production)
+é DIFERENTE do `.env.local`. A produção recusa eventos assinados com o segredo local
+(`No signatures found`). Na troca, gravar o mesmo `whsec_` nos dois lugares e confirmar
+com `verificar`, que agora testa isso direto contra a produção.
+
+#### 4. O que NÃO muda (verificado em 14/09)
+- **Código:** preços criados no checkout (`price_data`); nenhum ID de conta,
+  produto ou preço fixo no código
+- **Banco:** nenhum vínculo com a conta antiga (`assinatura_id` vazio,
+  `pagamentos` vazia)
+- **Git:** nenhuma chave Stripe em arquivo nem no histórico
+
+#### 5. Perdido junto com a conta antiga (irrelevante)
+Dados de teste: 2 clientes, 1 assinatura, 3 produtos e preços gerados pelo checkout.
+
+#### 6. Bug achado na varredura — corrigido antes da troca
+O webhook não encontrava o salão em `invoice.paid` e `invoice.payment_failed`:
+na versão atual da API a metadata da fatura fica em
+`parent.subscription_details`, e o código só conhecia o formato antigo.
+Efeito: **cartão recusado na renovação nunca bloqueava o salão**, e a
+`assinatura_id` podia ser sobrescrita com o id da fatura. Lógica movida para
+[`lib/stripe-evento.ts`](lib/stripe-evento.ts) e testada contra eventos reais
+da conta antiga. O webhook novo é criado com `api_version` fixada na versão do
+SDK (a antiga usava "padrão da conta", que muda sem aviso).
+
 ### 🔒 BLOQUEADO — falta permissão no Supabase
 
 Estes dois **não dependem de código**. A conta atual não tem permissão
@@ -83,13 +155,7 @@ Camadas, para não confundir:
 
 
 ### 🔵 Dependem de terceiros
-- 🔴 **Stripe: verificação do representante FALHOU — prazo venceu em 04/09/2026.**
-  Pagamentos e repasses **pausados** na conta real. Não é espera: precisa
-  clicar em "Começar" (fora do modo de teste) e corrigir os dados do
-  representante. Causa mais provável: nome jurídico incompleto (só
-  "Eduardo Fortunato") ou divergente do cadastro na Receita Federal.
-  A API com `sk_test_` NÃO mostra essa pendência — ela só existe no modo real.
-  Conta como `individual` (CPF); se for mudar para CNPJ, é agora.
+- 🔄 **Stripe: conta será trocada** — ver seção TROCA DE CONTA STRIPE acima.
   - Taxa real medida nas transações: **3,99% + R$ 0,39** por cobrança.
     Idêntica para CPF ou CNPJ — a Stripe não precifica por tipo de conta.
     O que muda é a tributação do nosso lado (IRPF vs. nota fiscal).

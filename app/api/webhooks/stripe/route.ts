@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripeClient } from "@/lib/stripe";
 import { isPlanoKey } from "@/lib/planos";
+import { extrairVinculo } from "@/lib/stripe-evento";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,12 +22,15 @@ export const dynamic = "force-dynamic";
  *
  * Idempotência: registrar_evento_pagamento() usa UNIQUE(evento_id).
  * A Stripe reenvia eventos até receber 2xx, então isso importa.
+ *
+ * Onde achar salão, plano e assinatura em cada tipo de evento fica em
+ * lib/stripe-evento.ts — o formato muda entre versões da API.
  */
 
 /** Eventos que alteram o estado da assinatura */
 const EVENTOS: Record<string, "ativa" | "cancelada" | "inadimplente"> = {
   "checkout.session.completed":     "ativa",         // primeira assinatura
-  "invoice.paid":                   "ativa",         // renovação mensal
+  "invoice.paid":                   "ativa",         // renovação
   "invoice.payment_failed":         "inadimplente",  // cartão recusado
   "customer.subscription.deleted":  "cancelada",
 };
@@ -65,18 +69,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ignorado: evento.type });
   }
 
-  // A união de tipos de data.object é enorme; tratamos como mapa e
-  // lemos só os campos que interessam, com verificação abaixo.
-  const objeto = evento.data.object as unknown as Record<string, unknown>;
-  const meta   = (objeto.metadata ?? {}) as Record<string, string | undefined>;
-
-  // O salão vem da metadata. Em invoice.* a metadata da sessão não
-  // viaja junto, por isso ela também é gravada em subscription_data —
-  // e o client_reference_id serve de última rede de segurança.
-  const salaoId = meta.salao_id
-    ?? (objeto.client_reference_id as string | undefined)
-    ?? (((objeto.subscription_details as Record<string, unknown> | undefined)
-        ?.metadata as Record<string, string> | undefined)?.salao_id);
+  const { salaoId, plano: planoBruto, assinaturaId, centavos } = extrairVinculo(evento);
 
   if (!salaoId) {
     // 200 de propósito: sem salão não há o que fazer, e devolver erro
@@ -84,7 +77,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, sem_salao: evento.type });
   }
 
-  const planoBruto = meta.plano;
   const plano = planoBruto && isPlanoKey(planoBruto) ? planoBruto : null;
 
   let admin;
@@ -93,9 +85,6 @@ export async function POST(request: Request) {
   } catch (err) {
     return NextResponse.json({ ok: false, error: `Admin client: ${String(err)}` }, { status: 500 });
   }
-
-  // Valor em centavos, quando o evento carrega um
-  const centavos = (objeto.amount_total ?? objeto.amount_paid ?? null) as number | null;
 
   const { data: novo, error: regErr } = await admin.rpc("registrar_evento_pagamento", {
     p_evento_id: evento.id,
@@ -122,7 +111,7 @@ export async function POST(request: Request) {
     p_salao_id:      salaoId,
     p_status:        novoStatus,
     p_plano:         plano,
-    p_assinatura_id: (objeto.subscription ?? objeto.id) as string | null,
+    p_assinatura_id: assinaturaId,   // null mantém o atual (coalesce na função)
   });
 
   if (updErr) {
