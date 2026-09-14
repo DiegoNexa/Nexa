@@ -9,7 +9,8 @@ Lista de pendências manuais antes de subir a Nexa em produção.
 Estado verificado com testes reais contra produção, não de memória.
 
 ### ✅ Concluído
-- **Migrations 006 → 021 aplicadas** no Supabase
+- **Migrations 006 → 019, 022 e 023 aplicadas** no projeto de produção
+  (conferido em 14/09 comparando cada tabela/coluna/função com o schema real)
 - **Vazamento de dados entre salões FECHADO** — `set role authenticated;
   select * from listar_lembretes_pendentes();` devolve `permission denied`
 - **Env vars da Vercel configuradas** *(verificado 10/09)* — o webhook rejeita
@@ -71,6 +72,26 @@ Camadas, para não confundir:
 | Formulário de login do site | Migration 023 — 10 falhas / 15 min |
 | API do Supabase direto | Rate Limits do painel — **bloqueado, ainda em 30** |
 | Volume bruto | Vercel → Firewall (opcional) |
+
+### 🔴 CRÍTICO — migrations 020 e 021 NÃO estão em produção (achado 14/09)
+
+Foram aplicadas no projeto antigo (`ldhtakk…`, que não existe mais), nunca no
+`rlxqgynqjkyughblxhdq`. Em produção `saloes` só tem
+`id, nome, slug, telefone_whatsapp, porte, created_at`.
+
+Consequências enquanto não aplicar:
+- **O bloqueio por assinatura não funciona**: o `(app)/layout.tsx` consulta
+  `assinatura_status`, a consulta falha, o resultado vem vazio e o guard deixa
+  passar. Qualquer um usa o app sem pagar.
+- **O webhook da Stripe responde 500** em pagamento real: `registrar_evento_pagamento`
+  não existe, então quem pagar não é registrado.
+- Configurações não carrega plano nem CPF/CNPJ.
+
+**Correção:** rodar `020_assinaturas.sql` e depois `021_salao_documento.sql`
+(inteiros) no SQL Editor. Seguro: só há 1 salão (teste, criado em 26/08), e o
+trial conta da criação, então ninguém é bloqueado na hora.
+
+**Não ativar o modo real da Stripe antes disso.**
 
 ### ⏳ Pendente — dependem só de você
 
