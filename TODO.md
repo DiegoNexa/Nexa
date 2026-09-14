@@ -81,9 +81,13 @@ Camadas, para não confundir:
 
 
 ### 🔵 Dependem de terceiros
-- **Verificação da conta Stripe** (`charges_enabled: false`) — a conta está
-  como `individual` (CPF). Enquanto a verificação não sai, ainda dá para
-  trocar para CNPJ; **depois trava para sempre**
+- 🔴 **Stripe: verificação do representante FALHOU — prazo venceu em 04/09/2026.**
+  Pagamentos e repasses **pausados** na conta real. Não é espera: precisa
+  clicar em "Começar" (fora do modo de teste) e corrigir os dados do
+  representante. Causa mais provável: nome jurídico incompleto (só
+  "Eduardo Fortunato") ou divergente do cadastro na Receita Federal.
+  A API com `sk_test_` NÃO mostra essa pendência — ela só existe no modo real.
+  Conta como `individual` (CPF); se for mudar para CNPJ, é agora.
   - Taxa real medida nas transações: **3,99% + R$ 0,39** por cobrança.
     Idêntica para CPF ou CNPJ — a Stripe não precifica por tipo de conta.
     O que muda é a tributação do nosso lado (IRPF vs. nota fiscal).
