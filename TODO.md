@@ -162,6 +162,24 @@ Camadas, para não confundir:
 
 ### ⏳ Pendente — dependem só de você
 
+#### Situação em 17/09/2026
+
+- 🔴 **Os lembretes por e-mail não são disparados por ninguém.** O cron foi
+  removido do `vercel.json` (commit `2925389`) porque o plano Hobby só permite
+  1x por dia, e a janela do lembrete é de 45 a 75 minutos antes do horário.
+  O endpoint `/api/cron/lembretes` funciona, mas nada o chama.
+  Opções: GitHub Actions a cada 15 min (grátis, o repo já está no GitHub),
+  cron-job.org, ou pg_cron no Supabase.
+- ⏳ **Teste real de R$ 49** — adiado a pedido em 17/09. Assinar Solo mensal em
+  produção, confirmar o desbloqueio, conferir no painel do webhook se as
+  tentativas respondem 200, depois cancelar a assinatura e reembolsar.
+- ⏳ **E-mail de suporte vazio** na Stripe (Configurações → Dados públicos).
+- ⏳ **EMAIL_LOGO_URL** na Vercel = `https://nexa-web-pi.vercel.app/logo.png`
+  (já corrigido no `.env.local`), seguido de Redeploy.
+- ⏳ **Site URL e Redirect URLs** no Supabase — sem isso o e-mail de cadastro
+  aponta para localhost.
+
+
 | # | O quê | Onde | Efeito de não fazer |
 |---|---|---|---|
 | 1 | **Site URL** = `https://nexa-web-pi.vercel.app` | Auth → URL Configuration | E-mail de cadastro aponta para localhost |
