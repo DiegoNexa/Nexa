@@ -40,7 +40,21 @@ Testes reais contra o projeto `rlxqgynqjkyughblxhdq`, não de memória:
 | **`.env.local` corrigido** | host resolve e responde | OK |
 
 
-### 🔄 TROCA DE CONTA STRIPE — em andamento (decidido em 14/09/2026)
+### 🔄 TROCA DE CONTA STRIPE — conta nova em uso (17/09/2026)
+
+**Status:** conta `acct_1TS3AJHQHgaJcwyz` (a antiga Bellora, renomeada para Nexa).
+Verificada: cobranças e repasses **ativos**, sem pendências, e sem herança
+nenhuma (0 clientes, 0 assinaturas). Perfil, marca, ícone e logo conferidos.
+Webhook do modo real criado para `/api/webhooks/stripe`; `sk_live_` e `whsec_`
+na Vercel (Production), com Redeploy feito e verificado.
+
+**A chave real NÃO pode ficar no `.env.local`** — com ela, `npm run dev` cobra
+de verdade. O arquivo local usa `sk_test_`. Já precisou ser removida duas vezes.
+
+**Falta:** colar a `sk_test_` no `.env.local`, preencher o e-mail de suporte na
+Stripe e fazer o pagamento real de R$ 49 (cancelar a assinatura e reembolsar).
+
+O histórico abaixo é do planejamento da troca.
 
 **Motivo:** a conta `acct_1TS3AZ…` foi aberta como pessoa física com o CPF de
 teste `000.000.000-00`. A verificação reprovou e, no Brasil, o CPF não pode ser
