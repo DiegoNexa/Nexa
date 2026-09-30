@@ -22,8 +22,8 @@ export type RecoverState = {
 const ALLOWED_HOSTS = new Set([
   "localhost:3000",
   "nexa-web-pi.vercel.app",        // produção atual
-  "nexa.com.br",                   // domínio próprio (quando existir)
-  "www.nexa.com.br",
+  "nexabase.com.br",              // domínio próprio
+  "www.nexabase.com.br",
 ]);
 // Precisa apontar para um host que realmente responde: com um domínio
 // ainda não registrado como fallback, todo link de recuperação vindo de
