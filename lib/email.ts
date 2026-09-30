@@ -11,6 +11,9 @@
  *                     ⚠️ onboarding@resend.dev SÓ envia para o e-mail
  *                     da conta Resend. Pra produção precisa verificar
  *                     domínio próprio.
+ *   - EMAIL_REPLY_TO  (opcional) caixa real que recebe as respostas.
+ *                     Sem ela, quem responder um e-mail com remetente
+ *                     nao-responda@ fala com o vazio.
  */
 
 type EmailParams = {
@@ -27,6 +30,7 @@ type EnviarResultado =
 export async function enviarEmail(params: EmailParams): Promise<EnviarResultado> {
   const apiKey = process.env.RESEND_API_KEY;
   const from   = process.env.EMAIL_FROM ?? "Nexa <onboarding@resend.dev>";
+  const replyTo = process.env.EMAIL_REPLY_TO?.trim();
 
   if (!apiKey) {
     return { ok: false, error: "RESEND_API_KEY não configurada." };
@@ -42,6 +46,7 @@ export async function enviarEmail(params: EmailParams): Promise<EnviarResultado>
       },
       body: JSON.stringify({
         from,
+        ...(replyTo ? { reply_to: replyTo } : {}),
         to:      params.to,
         subject: params.subject,
         html:    params.html,
