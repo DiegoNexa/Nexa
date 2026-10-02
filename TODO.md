@@ -162,6 +162,20 @@ Camadas, para não confundir:
 
 ### ⏳ Pendente — dependem só de você
 
+#### Testado e aprovado em 02/10/2026
+
+- ✅ **Lembrete por e-mail funciona em produção**: cron respondeu
+  `{"candidatos":1,"enviados":1}` e o e-mail chegou. Faltava a
+  `RESEND_API_KEY` na Vercel — produção não enviava nada.
+- ✅ **Cobrança validada de ponta a ponta** (modo teste, cartão 4242):
+  salão passou para `ativa`, `assinatura_id` gravou `sub_…` e os dois
+  eventos entraram na tabela `pagamentos`.
+- ✅ As duas correções do webhook ficaram provadas na prática: o
+  `invoice.paid` encontrou o salão (antes respondia `sem_salao`) e a
+  `assinatura_id` não foi sobrescrita com o id da fatura.
+- ⚠️ O salão de teste está `ativa` por causa do teste. Voltar para
+  `trial` quando não for mais útil.
+
 #### Situação em 17/09/2026
 
 - 🔴 **Os lembretes por e-mail não são disparados por ninguém.** O cron foi
