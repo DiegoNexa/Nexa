@@ -73,6 +73,11 @@ export function mapSignupError(error: AuthError): string {
   if (msg.includes("rate limit")) {
     return SIGNUP_CODES.over_request_rate_limit;
   }
+  // Falha de SMTP (remetente não autorizado, credencial errada, porta
+  // bloqueada). O Supabase devolve unexpected_failure, sem código útil.
+  if (msg.includes("confirmation email") || msg.includes("sending email")) {
+    return "Não conseguimos enviar o e-mail de confirmação. Tente novamente em instantes.";
+  }
   if (msg.includes("password")) return mapWeakPassword(msg);
   if (msg.includes("email") && msg.includes("invalid")) {
     return SIGNUP_CODES.email_address_invalid;
