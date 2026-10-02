@@ -239,14 +239,81 @@ async function criarWebhook({ gravarEnv }) {
   console.log("\nSegredo (a Stripe só mostra agora — copie):\n" + w.secret);
 }
 
+// ── checkout-teste ─────────────────────────────────────────────
+/**
+ * Cria um checkout de valor simbólico para validar a cobrança de ponta
+ * a ponta sem pagar um plano inteiro.
+ *
+ * Por que não serve um Payment Link do painel: ele não carrega o
+ * salao_id na metadata, então o webhook não saberia quem desbloquear.
+ * Aqui a metadata é idêntica à de lib/stripe.ts.
+ *
+ * Imprime só a URL do checkout, que não é segredo.
+ */
+async function checkoutTeste({ salao, centavos, plano, periodo }) {
+  const chave = process.env.STRIPE_SECRET_KEY || arquivoEnv().STRIPE_SECRET_KEY;
+  if (!chave) { console.error("STRIPE_SECRET_KEY ausente"); process.exitCode = 1; return; }
+  if (!salao) { console.error("informe o salão: --salao=<uuid>"); process.exitCode = 1; return; }
+
+  const real   = chave.includes("_live_");
+  const stripe = new Stripe(chave);
+  const base   = URL_WEBHOOK.replace("/api/webhooks/stripe", "");
+
+  const sessao = await stripe.checkout.sessions.create({
+    mode:                 "subscription",
+    payment_method_types: ["card"],
+    locale:               "pt-BR",
+    line_items: [{
+      quantity: 1,
+      price_data: {
+        currency:     "brl",
+        unit_amount:  centavos,
+        recurring:    { interval: "month" },
+        product_data: { name: "Nexa — teste de cobrança" },
+      },
+    }],
+    success_url:         base + "/configuracoes?assinatura=ok",
+    cancel_url:          base + "/assinatura",
+    client_reference_id: salao,
+    metadata:            { salao_id: salao, plano, periodo },
+    subscription_data:   { metadata: { salao_id: salao, plano, periodo } },
+  });
+
+  console.log("modo............", real ? "REAL — vai cobrar de verdade" : "TESTE — use o cartão 4242 4242 4242 4242");
+  console.log("valor...........", "R$ " + (centavos / 100).toFixed(2).replace(".", ","));
+  console.log("salão...........", salao);
+  console.log("plano gravado...", plano, "/", periodo);
+  console.log("");
+  console.log("Abra para pagar:");
+  console.log(sessao.url);
+  if (real) {
+    console.log("");
+    console.log("Depois de pagar: cancele a assinatura e faça o reembolso no painel.");
+    console.log("A taxa da Stripe normalmente não volta no reembolso.");
+  }
+}
+
 // ── entrada ────────────────────────────────────────────────────
 const [cmd, ...flags] = process.argv.slice(2);
+const flag = (nome, padrao) => {
+  const achado = flags.find((f) => f.startsWith("--" + nome + "="));
+  return achado ? achado.slice(nome.length + 3) : padrao;
+};
+
 if (cmd === "verificar") {
   await verificar({ semProducao: flags.includes("--sem-producao") });
 } else if (cmd === "criar-webhook") {
   await criarWebhook({ gravarEnv: flags.includes("--gravar-env") });
+} else if (cmd === "checkout-teste") {
+  await checkoutTeste({
+    salao:    flag("salao"),
+    centavos: Number(flag("centavos", "100")),
+    plano:    flag("plano", "solo"),
+    periodo:  flag("periodo", "mensal"),
+  });
 } else {
   console.log("uso: node scripts/stripe-conta.mjs verificar [--sem-producao]");
   console.log("     node scripts/stripe-conta.mjs criar-webhook [--gravar-env]");
+  console.log("     node scripts/stripe-conta.mjs checkout-teste --salao=<uuid> [--centavos=100] [--plano=solo] [--periodo=mensal]");
   process.exitCode = 1;
 }
