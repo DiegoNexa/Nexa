@@ -21,12 +21,12 @@
 import fs from "node:fs";
 import Stripe from "stripe";
 
-const URL_WEBHOOK = "https://nexa-web-pi.vercel.app/api/webhooks/stripe";
+const URL_WEBHOOK = "https://nexabase.com.br/api/webhooks/stripe";
 const ROTA        = "app/api/webhooks/stripe/route.ts";
 
 const PERFIL = {
   nome:      "Nexa",
-  site:      "https://nexa-web-pi.vercel.app",
+  site:      "https://nexabase.com.br",
   descritor: "ASSINATURA NEXA",
 };
 
@@ -183,8 +183,8 @@ async function verificar({ semProducao }) {
             product_data: { name: "Verificação Nexa" },
           },
         }],
-        success_url: "https://nexa-web-pi.vercel.app/configuracoes",
-        cancel_url:  "https://nexa-web-pi.vercel.app/assinatura",
+        success_url: "https://nexabase.com.br/configuracoes",
+        cancel_url:  "https://nexabase.com.br/assinatura",
         metadata: { verificacao: "sim" },
       });
       ok("sessão de assinatura em BRL criada (" + s.id.slice(0, 14) + "…)");

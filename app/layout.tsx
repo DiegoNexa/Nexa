@@ -20,7 +20,7 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["500"],
 });
 
-const SITE_URL = "https://nexa.com.br";
+const SITE_URL = "https://nexabase.com.br";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

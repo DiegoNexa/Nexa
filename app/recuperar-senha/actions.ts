@@ -28,7 +28,7 @@ const ALLOWED_HOSTS = new Set([
 // Precisa apontar para um host que realmente responde: com um domínio
 // ainda não registrado como fallback, todo link de recuperação vindo de
 // um host desconhecido levaria a lugar nenhum.
-const FALLBACK_HOST = "nexa-web-pi.vercel.app";
+const FALLBACK_HOST = "nexabase.com.br";
 
 export async function recoverAction(
   _prev: RecoverState,
