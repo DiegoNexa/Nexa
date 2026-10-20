@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SalaoForm } from "@/components/configuracoes/salao-form";
 import { LinkPublicoCopy } from "@/components/configuracoes/link-publico-copy";
 import { PlanosCards } from "@/components/configuracoes/planos-cards";
+import { abrirPortalCobranca } from "./actions";
 import {
   PLANOS,
   LABEL_STATUS,
@@ -20,9 +21,24 @@ type Salao = {
   plano:             PlanoSalao;
   assinatura_status: AssinaturaStatus;
   trial_termina_em:  string;
+  assinatura_id:     string | null;
 };
 
-export default async function ConfiguracoesPage() {
+/** Mensagens de volta do portal de cobrança (via ?portal=) */
+const AVISO_PORTAL: Record<string, string> = {
+  erro:             "Não foi possível abrir o portal de cobrança. Tente novamente em instantes.",
+  "sem-assinatura": "Este salão ainda não tem uma assinatura para gerenciar.",
+  "sem-permissao":  "Apenas o dono do salão pode gerenciar a cobrança.",
+};
+
+export default async function ConfiguracoesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ portal?: string }>;
+}) {
+  const { portal } = await searchParams;
+  const avisoPortal = portal ? AVISO_PORTAL[portal] : undefined;
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -34,7 +50,7 @@ export default async function ConfiguracoesPage() {
 
   const { data: salao } = await supabase
     .from("saloes")
-    .select("id, nome, slug, telefone_whatsapp, documento, plano, assinatura_status, trial_termina_em")
+    .select("id, nome, slug, telefone_whatsapp, documento, plano, assinatura_status, trial_termina_em, assinatura_id")
     .eq("id", usuario?.salao_id ?? "")
     .single<Salao>();
 
@@ -96,6 +112,43 @@ export default async function ConfiguracoesPage() {
               assinaturaAtiva={salao.assinatura_status === "ativa"}
               podeAssinar={podeEditar}
             />
+
+            {/* Portal da Stripe: o salão troca cartão, baixa faturas,
+                muda de plano e cancela sem depender de nós. */}
+            {podeEditar && salao.assinatura_id && (
+              <form action={abrirPortalCobranca} className="mt-4">
+                <button
+                  type="submit"
+                  className="w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all-custom flex items-center justify-center gap-2 text-on-surface"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>
+                    credit_card
+                  </span>
+                  Gerenciar assinatura e pagamento
+                </button>
+                <p className="text-xs text-on-surface-variant mt-2 text-center">
+                  Trocar cartão, ver faturas, mudar de plano ou cancelar.
+                </p>
+              </form>
+            )}
+
+            {avisoPortal && (
+              <p
+                role="alert"
+                className="text-xs mt-3 rounded-xl px-4 py-3"
+                style={{
+                  background: "rgba(255, 180, 171, 0.08)",
+                  border: "1px solid var(--color-error)",
+                  color: "var(--color-error)",
+                }}
+              >
+                {avisoPortal}
+              </p>
+            )}
             {!podeEditar && (
               <p className="text-xs text-on-surface-variant mt-3">
                 Apenas o dono do salão pode contratar ou alterar o plano.

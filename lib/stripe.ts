@@ -115,3 +115,49 @@ export async function criarCheckoutAssinatura(
 export function stripeClient(): Stripe {
   return stripe();
 }
+
+export type PortalResultado =
+  | { ok: true;  url: string }
+  | { ok: false; error: string };
+
+/**
+ * Abre o portal de cobrança da Stripe para o salão se virar sozinho:
+ * trocar o cartão, ver faturas, mudar de plano e cancelar.
+ *
+ * Sem isso, toda alteração passa por nós dentro do painel da Stripe —
+ * o que não escala a partir de alguns clientes.
+ *
+ * Guardamos o id da assinatura (`sub_…`), não o do cliente, então
+ * buscamos a assinatura primeiro para chegar no `customer`.
+ */
+export async function criarPortalCliente(p: {
+  assinaturaId: string;
+  baseUrl:      string;
+}): Promise<PortalResultado> {
+  try {
+    const assinatura = await stripe().subscriptions.retrieve(p.assinaturaId);
+    const cliente = typeof assinatura.customer === "string"
+      ? assinatura.customer
+      : assinatura.customer.id;
+
+    const sessao = await stripe().billingPortal.sessions.create({
+      customer:   cliente,
+      return_url: `${p.baseUrl}/configuracoes`,
+    });
+
+    return { ok: true, url: sessao.url };
+  } catch (err) {
+    const msg = err instanceof Stripe.errors.StripeError ? err.message : String(err);
+
+    // O portal precisa ser ativado uma vez no painel da Stripe
+    // (Configurações > Faturamento > Portal do cliente). Sem isso a
+    // API devolve um erro técnico que não diz o que fazer.
+    if (msg.includes("configuration")) {
+      return {
+        ok: false,
+        error: "O portal de cobrança ainda não foi ativado no painel da Stripe.",
+      };
+    }
+    return { ok: false, error: `Stripe: ${msg}` };
+  }
+}

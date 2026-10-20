@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { criarCheckoutAssinatura } from "@/lib/stripe";
+import { criarCheckoutAssinatura, criarPortalCliente } from "@/lib/stripe";
 import { isPlanoKey, isPeriodicidade } from "@/lib/planos";
 
 const schema = z.object({
@@ -142,4 +142,46 @@ export async function iniciarAssinatura(
 
   // Fora do try/catch: redirect() sinaliza via exceção
   redirect(resultado.url);
+}
+
+/**
+ * Abre o portal de cobrança da Stripe, onde o próprio salão troca o
+ * cartão, baixa faturas, muda de plano e cancela.
+ *
+ * Usada direto no `action` de um <form>, sem estado: em caso de erro
+ * volta para a tela com `?portal=erro`, porque um redirect é a única
+ * saída possível de uma action sem retorno.
+ */
+export async function abrirPortalCobranca(): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: u } = await supabase
+    .from("usuarios")
+    .select("salao_id, role")
+    .eq("id", user.id)
+    .maybeSingle<{ salao_id: string; role: string }>();
+
+  if (!u || u.role !== "dono") redirect("/configuracoes?portal=sem-permissao");
+
+  const { data: salao } = await supabase
+    .from("saloes")
+    .select("assinatura_id")
+    .eq("id", u.salao_id)
+    .maybeSingle<{ assinatura_id: string | null }>();
+
+  // Salão que nunca assinou não tem o que gerenciar
+  if (!salao?.assinatura_id) redirect("/configuracoes?portal=sem-assinatura");
+
+  const h    = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  const baseUrl = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
+
+  const resultado = await criarPortalCliente({
+    assinaturaId: salao.assinatura_id,
+    baseUrl,
+  });
+
+  redirect(resultado.ok ? resultado.url : "/configuracoes?portal=erro");
 }

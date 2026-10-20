@@ -4,6 +4,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { PlanosCards } from "@/components/configuracoes/planos-cards";
 import { logoutAction } from "@/app/(app)/dashboard/actions";
+import { abrirPortalCobranca } from "@/app/(app)/configuracoes/actions";
 import {
   acessoBloqueado,
   motivoBloqueio,
@@ -21,6 +22,7 @@ type Salao = {
   assinatura_status:        AssinaturaStatus;
   trial_termina_em:         string;
   assinatura_atualizada_em: string | null;
+  assinatura_id:            string | null;
 };
 
 /**
@@ -37,7 +39,7 @@ export default async function AssinaturaPage() {
 
   const { data: usuario } = await supabase
     .from("usuarios")
-    .select("role, saloes(nome, plano, assinatura_status, trial_termina_em, assinatura_atualizada_em)")
+    .select("role, saloes(nome, plano, assinatura_status, trial_termina_em, assinatura_atualizada_em, assinatura_id)")
     .eq("id", user.id)
     .single<{ role: string; saloes: Salao | null }>();
 
@@ -104,6 +106,26 @@ export default async function AssinaturaPage() {
                 assinaturaAtiva={false}
                 podeAssinar
               />
+              {/* Quem já assinou e caiu aqui (cartão recusado ou
+                  cancelamento) resolve pelo portal, sem assinar de novo. */}
+              {salao.assinatura_id && (
+                <form action={abrirPortalCobranca} className="mt-4">
+                  <button
+                    type="submit"
+                    className="w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all-custom flex items-center justify-center gap-2 text-on-surface"
+                    style={{
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>
+                      credit_card
+                    </span>
+                    Já tenho assinatura — atualizar pagamento
+                  </button>
+                </form>
+              )}
+
               <div className="flex items-center justify-center gap-4 flex-wrap mt-5 text-xs text-on-surface-variant">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-primary" style={{ fontSize: "16px" }}>
