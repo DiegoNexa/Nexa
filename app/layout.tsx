@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans, JetBrains_Mono, Badeen_Display } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans, JetBrains_Mono, Bungee_Hairline } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -22,7 +22,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 // Fonte do wordmark "NEXA" na landing — display, estilo logo.
 // Usada só ali (via a variável abaixo); o resto do app não muda.
-const wordmarkFont = Badeen_Display({
+const wordmarkFont = Bungee_Hairline({
   variable: "--font-wordmark",
   subsets: ["latin"],
   weight: ["400"],
