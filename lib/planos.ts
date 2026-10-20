@@ -80,6 +80,84 @@ export const PLANOS: Record<PlanoKey, Plano> = {
 
 export const PLANOS_LISTA: Plano[] = [PLANOS.solo, PLANOS.profissional, PLANOS.premium];
 
+// ─── Recursos por plano (gating) ───────────────────────────
+//
+// Derivado dos benefícios anunciados na landing — a mesma fonte que
+// o cliente lê antes de assinar. Cada tela protegida declara o plano
+// MÍNIMO que a inclui; os planos são cumulativos (Premium ⊇
+// Profissional ⊇ Solo), então basta a ordem abaixo.
+//
+// Mudar um recurso de plano aqui muda o acesso em todo o app de uma
+// vez — sidebar, guarda de página e aviso de upgrade leem daqui.
+
+/** Ordem de poder dos planos. Índice maior = inclui os menores. */
+export const ORDEM_PLANOS: PlanoKey[] = ["solo", "profissional", "premium"];
+
+/** Rotas protegidas e o plano mínimo que as libera. */
+export const PLANO_MINIMO_ROTA: Record<string, PlanoKey> = {
+  // Base — todo plano (inclusive Solo) tem:
+  "/dashboard":       "solo",
+  "/agenda":          "solo",
+  "/clientes":        "solo",
+  "/servicos":        "solo",
+  "/profissionais":   "solo",   // liberada, mas com limite de equipe (ver maxProfissionais)
+  "/configuracoes":   "solo",
+
+  // Profissional em diante (equipe, relatórios, estoque):
+  "/carga-horaria":   "profissional",
+  "/ranking":         "profissional",
+  "/folha-pagamento": "profissional",
+  "/estoque":         "profissional",
+
+  // Premium (gestão financeira completa + despesas recorrentes):
+  "/financeiro":      "premium",
+};
+
+/**
+ * Plano efetivo para fins de gating. Durante o trial, o salão guarda
+ * em `plano` o que escolheu no cadastro; se por algum motivo vier
+ * 'trial' (contas antigas), cai no mínimo para não liberar de graça.
+ */
+export function planoEfetivo(plano: PlanoSalao): PlanoKey {
+  return isPlanoKey(plano) ? plano : "solo";
+}
+
+/** true se `plano` alcança o `exigido` (cumulativo). */
+export function planoAlcanca(plano: PlanoKey, exigido: PlanoKey): boolean {
+  return ORDEM_PLANOS.indexOf(plano) >= ORDEM_PLANOS.indexOf(exigido);
+}
+
+/**
+ * O salão (pelo plano) pode acessar a rota?
+ * Rota não listada é livre (ex.: páginas públicas, /clientes/novo…
+ * herdam da raiz pelo prefixo).
+ */
+export function planoPermiteRota(plano: PlanoSalao, rota: string): boolean {
+  const exigido = planoMinimoDaRota(rota);
+  return exigido === null || planoAlcanca(planoEfetivo(plano), exigido);
+}
+
+/** Plano mínimo da rota, casando pelo prefixo mais específico. */
+export function planoMinimoDaRota(rota: string): PlanoKey | null {
+  // Casa o prefixo mais longo: /clientes/novo usa a regra de /clientes
+  const chaves = Object.keys(PLANO_MINIMO_ROTA).sort((a, b) => b.length - a.length);
+  for (const base of chaves) {
+    if (rota === base || rota.startsWith(base + "/")) return PLANO_MINIMO_ROTA[base];
+  }
+  return null;
+}
+
+/** Limite de profissionais do plano (Infinity = ilimitado). */
+export function limiteProfissionais(plano: PlanoSalao): number {
+  return PLANOS[planoEfetivo(plano)].maxProfissionais;
+}
+
+/** Menor plano que inclui a rota — para a mensagem "faça upgrade para X". */
+export function planoNecessarioParaRota(rota: string): Plano | null {
+  const chave = planoMinimoDaRota(rota);
+  return chave ? PLANOS[chave] : null;
+}
+
 /** Dias de teste grátis (espelha o default de saloes.trial_termina_em) */
 export const TRIAL_DIAS = 30;
 

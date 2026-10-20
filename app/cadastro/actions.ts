@@ -21,6 +21,7 @@ const signupSchema = z.object({
     .regex(/[A-Za-z]/, "Senha deve conter ao menos uma letra")
     .regex(/[0-9]/, "Senha deve conter ao menos um número"),
   porte:        z.enum(["solo", "bairro", "consolidado"]),
+  plano:        z.enum(["solo", "profissional", "premium"]),
 });
 
 export type SignupState = {
@@ -35,6 +36,7 @@ export type SignupState = {
     email?:       string;
     whatsapp?:    string;
     porte?:       string;
+    plano?:       string;
   };
 };
 
@@ -72,6 +74,7 @@ export async function signupAction(
     whatsapp:    formData.get("whatsapp"),
     senha:       formData.get("senha"),
     porte:       formData.get("porte"),
+    plano:       formData.get("plano"),
   };
 
   // Valores que voltam pro form se algo der errado (sem a senha)
@@ -81,6 +84,7 @@ export async function signupAction(
     email:       typeof raw.email       === "string" ? raw.email       : "",
     whatsapp:    typeof raw.whatsapp    === "string" ? raw.whatsapp    : "",
     porte:       typeof raw.porte       === "string" ? raw.porte       : "",
+    plano:       typeof raw.plano       === "string" ? raw.plano       : "",
   };
 
   const parsed = signupSchema.safeParse(raw);
@@ -120,6 +124,7 @@ export async function signupAction(
         slug_salao: slug,
         telefone:   data.whatsapp,
         porte:      data.porte,
+        plano:      data.plano,
       },
     },
   });

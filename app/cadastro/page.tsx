@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { Suspense, useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { HoverButton } from "@/components/ui/hover-button";
 import { signupAction, type SignupState } from "./actions";
+import { PLANOS_LISTA, isPlanoKey } from "@/lib/planos";
 
 const initialState: SignupState = { ok: false };
 
@@ -14,8 +16,19 @@ const portes = [
   { value: "consolidado",  label: "Salão consolidado (6 ou mais)"  },
 ] as const;
 
-export default function CadastroPage() {
+function CadastroForm() {
   const [state, formAction, isPending] = useActionState(signupAction, initialState);
+
+  // Plano pré-selecionado pelo link da landing (?plano=...) ou, na
+  // volta de um erro, o que o usuário já havia escolhido. Default:
+  // o plano em destaque.
+  const params    = useSearchParams();
+  const planoUrl  = params.get("plano");
+  const planoInicial =
+    (state.values?.plano && isPlanoKey(state.values.plano) && state.values.plano) ||
+    (planoUrl && isPlanoKey(planoUrl) && planoUrl) ||
+    PLANOS_LISTA.find(p => p.destaque)?.key ||
+    "profissional";
 
   return (
     <div className="min-h-screen relative">
@@ -205,6 +218,48 @@ export default function CadastroPage() {
               )}
             </div>
 
+            {/* Plano para testar — libera só os recursos do plano
+                escolhido durante os 30 dias grátis. */}
+            <div>
+              <label className="block text-sm font-medium text-on-surface mb-1.5">
+                Plano para testar grátis por 30 dias
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {PLANOS_LISTA.map(p => (
+                  <label
+                    key={p.key}
+                    className="relative flex flex-col rounded-xl p-3 cursor-pointer transition-all-custom has-[:checked]:border-primary"
+                    style={{
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="plano"
+                      value={p.key}
+                      defaultChecked={p.key === planoInicial}
+                      className="peer sr-only"
+                    />
+                    <span className="absolute top-2 right-2 opacity-0 peer-checked:opacity-100 text-primary material-symbols-outlined" style={{ fontSize: "16px" }}>
+                      check_circle
+                    </span>
+                    <span className="text-sm font-bold text-on-surface">{p.nome}</span>
+                    <span className="text-xs text-on-surface-variant">R$ {p.precoMensal}/mês</span>
+                    <span className="text-[11px] text-on-surface-variant mt-1">{p.profissionais}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-on-surface-variant mt-1.5">
+                Sem cobrança agora. Você só paga se continuar depois do teste.
+              </p>
+              {state.fieldErrors?.plano && (
+                <p className="text-xs mt-1.5" style={{ color: "var(--color-error)" }}>
+                  {state.fieldErrors.plano}
+                </p>
+              )}
+            </div>
+
             {state.message && !state.fieldErrors && (
               <div
                 role="alert"
@@ -280,5 +335,13 @@ function Field({ label, name, type = "text", placeholder, error, defaultValue }:
         </p>
       )}
     </div>
+  );
+}
+
+export default function CadastroPage() {
+  return (
+    <Suspense fallback={null}>
+      <CadastroForm />
+    </Suspense>
   );
 }

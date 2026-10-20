@@ -4,6 +4,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { limiteProfissionais, isPlanoKey, PLANOS, type PlanoSalao } from "@/lib/planos";
 
 // ─── Validações compartilhadas ────────────────────────────────
 const optionalTelefone = z.preprocess(
@@ -100,9 +101,9 @@ export async function criarProfissional(
 
   const { data: u, error: userErr } = await supabase
     .from("usuarios")
-    .select("salao_id")
+    .select("salao_id, saloes(plano)")
     .eq("id", user.id)
-    .maybeSingle<{ salao_id: string }>();
+    .maybeSingle<{ salao_id: string; saloes: { plano: PlanoSalao } | null }>();
 
   if (userErr) {
     console.error("[profissionais] Erro ao buscar usuário:", userErr);
@@ -110,6 +111,30 @@ export async function criarProfissional(
   }
   if (!u) {
     return { ok: false, message: "Sua conta não está vinculada a um salão.", values: preservedValues };
+  }
+
+  // Limite de equipe do plano. Checado aqui porque a página de
+  // profissionais é liberada para todos — o que varia é quantos cabem.
+  const plano  = u.saloes?.plano ?? "trial";
+  const limite = limiteProfissionais(plano);
+  if (Number.isFinite(limite)) {
+    const { count } = await supabase
+      .from("profissionais")
+      .select("id", { count: "exact", head: true })
+      .eq("salao_id", u.salao_id)
+      .eq("ativo", true);
+
+    if ((count ?? 0) >= limite) {
+      const nome = isPlanoKey(plano) ? PLANOS[plano].nome : "atual";
+      return {
+        ok: false,
+        message:
+          limite === 1
+            ? `O plano ${nome} inclui 1 profissional. Faça upgrade em Configurações para cadastrar mais.`
+            : `O plano ${nome} inclui até ${limite} profissionais. Faça upgrade em Configurações para cadastrar mais.`,
+        values: preservedValues,
+      };
+    }
   }
 
   const { data: created, error } = await supabase

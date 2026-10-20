@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/app/sidebar";
-import { acessoBloqueado, type AssinaturaStatus } from "@/lib/planos";
+import { acessoBloqueado, type AssinaturaStatus, type PlanoSalao } from "@/lib/planos";
 import { logoutAction } from "./dashboard/actions";
 
 /**
@@ -28,6 +28,7 @@ export default async function AppLayout({
 
   type Salao = {
     nome:                     string;
+    plano:                    PlanoSalao;
     assinatura_status:        AssinaturaStatus;
     trial_termina_em:         string;
     assinatura_atualizada_em: string | null;
@@ -35,7 +36,7 @@ export default async function AppLayout({
 
   const { data: usuario } = await supabase
     .from("usuarios")
-    .select("nome, role, saloes(nome, assinatura_status, trial_termina_em, assinatura_atualizada_em)")
+    .select("nome, role, saloes(nome, plano, assinatura_status, trial_termina_em, assinatura_atualizada_em)")
     .eq("id", user.id)
     .single<{ nome: string; role: string; saloes: Salao | null }>();
 
@@ -53,6 +54,7 @@ export default async function AppLayout({
   // mostra apenas o salão se o usuário não tiver nome registrado.
   const primeiroNome = usuario?.nome?.split(" ")[0];
   const nomeSalao    = usuario?.saloes?.nome ?? "Salão";
+  const planoSalao   = usuario?.saloes?.plano ?? "trial";
 
   // Aurora background — fica fixo atrás de toda a área autenticada
   return (
@@ -71,6 +73,7 @@ export default async function AppLayout({
       <Sidebar
         primeiroNome={primeiroNome}
         nomeSalao={nomeSalao}
+        plano={planoSalao}
         logoutAction={logoutAction}
       />
 

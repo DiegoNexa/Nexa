@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { GoldBorderButton } from "@/components/ui/gold-border-button";
 import { alternarAtivoProduto } from "./actions";
+import { exigirRota } from "@/lib/plano-atual";
+import { BloqueioUpgrade } from "@/components/app/bloqueio-upgrade";
 
 type Produto = {
   id:                string;
@@ -25,6 +27,9 @@ function estoqueBaixo(p: Produto): boolean {
 }
 
 export default async function EstoquePage() {
+  const _g = await exigirRota("/estoque");
+  if (!_g.permitido) return <BloqueioUpgrade recurso="Controle de estoque" exige={_g.exige} podeAssinar={true} />;
+
   const supabase = await createClient();
   const { data: produtos } = await supabase
     .from("produtos")

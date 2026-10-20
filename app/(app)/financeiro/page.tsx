@@ -5,10 +5,15 @@ import { DespesaItem } from "@/components/financeiro/despesa-item";
 import { RecorrenteItem } from "@/components/financeiro/recorrente-item";
 import { BRL, parseMesParam } from "@/lib/folha-pagamento";
 import { carregarFinanceiro, carregarRecorrentes, CATEGORIA_LABEL } from "@/lib/financeiro";
+import { exigirRota } from "@/lib/plano-atual";
+import { BloqueioUpgrade } from "@/components/app/bloqueio-upgrade";
 
 type Props = { searchParams: Promise<{ mes?: string }> };
 
 export default async function FinanceiroPage({ searchParams }: Props) {
+  const _g = await exigirRota("/financeiro");
+  if (!_g.permitido) return <BloqueioUpgrade recurso="Gestão financeira" exige={_g.exige} podeAssinar={true} />;
+
   const { mes } = await searchParams;
   const periodo = parseMesParam(mes);
 

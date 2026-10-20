@@ -8,6 +8,8 @@ import {
   DIAS_LABEL,
   DIAS_FDS,
 } from "@/lib/carga-horaria";
+import { exigirRota } from "@/lib/plano-atual";
+import { BloqueioUpgrade } from "@/components/app/bloqueio-upgrade";
 
 // Cor da cobertura por dia: 0 descoberto, 1 frágil, 2+ ok
 function corCobertura(n: number): { cor: string; label: string } {
@@ -17,6 +19,9 @@ function corCobertura(n: number): { cor: string; label: string } {
 }
 
 export default async function CargaHorariaPage() {
+  const _g = await exigirRota("/carga-horaria");
+  if (!_g.permitido) return <BloqueioUpgrade recurso="Carga horária" exige={_g.exige} podeAssinar={true} />;
+
   const supabase = await createClient();
   const escala = await carregarEscala(supabase);
 

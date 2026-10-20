@@ -11,6 +11,8 @@ import {
   type RankingItem,
   type Totais,
 } from "@/lib/ranking";
+import { exigirRota } from "@/lib/plano-atual";
+import { BloqueioUpgrade } from "@/components/app/bloqueio-upgrade";
 
 type Props = { searchParams: Promise<{ mes?: string; metrica?: string }> };
 
@@ -23,6 +25,9 @@ function fmtMetrica(t: Totais, m: Metrica): string {
 }
 
 export default async function RankingPage({ searchParams }: Props) {
+  const _g = await exigirRota("/ranking");
+  if (!_g.permitido) return <BloqueioUpgrade recurso="Ranking de profissionais" exige={_g.exige} podeAssinar={true} />;
+
   const { mes, metrica: metricaRaw } = await searchParams;
   const periodo = parseMesParam(mes);
   const metrica = parseMetrica(metricaRaw);

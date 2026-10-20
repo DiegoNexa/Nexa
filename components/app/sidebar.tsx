@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { planoPermiteRota, type PlanoSalao } from "@/lib/planos";
 
 type NavItem = {
   href:    string;
@@ -15,6 +16,7 @@ type NavItem = {
 type SidebarProps = {
   primeiroNome?: string;
   nomeSalao:     string;
+  plano:         PlanoSalao;
   logoutAction:  () => void | Promise<void>;
 };
 
@@ -34,7 +36,7 @@ const NAV: NavItem[] = [
 
 const STORAGE_KEY = "nexa-sidebar-collapsed";
 
-export function Sidebar({ primeiroNome, nomeSalao, logoutAction }: SidebarProps) {
+export function Sidebar({ primeiroNome, nomeSalao, plano, logoutAction }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed]   = useState(false);
@@ -129,6 +131,30 @@ export function Sidebar({ primeiroNome, nomeSalao, logoutAction }: SidebarProps)
                 background: active ? "rgba(200,153,51,0.08)" : "transparent",
                 border: active ? "1px solid rgba(200,153,51,0.2)" : "1px solid transparent",
               };
+
+              // Recurso fora do plano: mostra cadeado e leva a Configurações
+              // (upsell), em vez de esconder — o usuário vê o que ganha ao assinar.
+              const foraDoPlano = !planoPermiteRota(plano, item.href);
+              if (foraDoPlano) {
+                return (
+                  <li key={item.href}>
+                    <a
+                      href="/configuracoes"
+                      onClick={() => setMobileOpen(false)}
+                      title={`${item.label} — disponível em um plano superior`}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm opacity-50 hover:opacity-80 transition-all-custom ${collapsed ? "md:justify-center md:px-0" : ""}`}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
+                        {item.icon}
+                      </span>
+                      <span className={hideOnCollapse}>{item.label}</span>
+                      <span className={`material-symbols-outlined ml-auto text-outline ${hideOnCollapse}`} style={{ fontSize: "16px" }}>
+                        lock
+                      </span>
+                    </a>
+                  </li>
+                );
+              }
 
               if (!item.enabled) {
                 return (

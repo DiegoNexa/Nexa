@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { MesSelector } from "@/components/folha-pagamento/mes-selector";
 import { BRL, carregarFolha, parseMesParam } from "@/lib/folha-pagamento";
+import { exigirRota } from "@/lib/plano-atual";
+import { BloqueioUpgrade } from "@/components/app/bloqueio-upgrade";
 
 type Profissional = {
   id:              string;
@@ -16,6 +18,9 @@ type Props = {
 };
 
 export default async function FolhaPagamentoPage({ searchParams }: Props) {
+  const _g = await exigirRota("/folha-pagamento");
+  if (!_g.permitido) return <BloqueioUpgrade recurso="Folha de pagamento" exige={_g.exige} podeAssinar={true} />;
+
   const { mes } = await searchParams;
   const periodo = parseMesParam(mes);
 

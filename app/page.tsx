@@ -41,6 +41,7 @@ function precos(plano: PlanoKey) {
 
 const nexaPlans = [
   {
+    key: "solo" as const,
     name: "Solo",
     tag: "Plano Solo",
     professionals: "1 profissional",
@@ -52,6 +53,7 @@ const nexaPlans = [
     buttonText: "Começar grátis",
   },
   {
+    key: "profissional" as const,
     name: "Profissional",
     tag: "Mais Popular",
     professionals: "Até 5 profissionais",
@@ -63,6 +65,7 @@ const nexaPlans = [
     buttonText: "Teste 30 dias grátis",
   },
   {
+    key: "premium" as const,
     name: "Premium",
     tag: "Plano Pro",
     professionals: "Profissionais ilimitados",
@@ -703,7 +706,7 @@ export default function Home() {
                     </div>
                     <p className="text-xs text-on-surface-variant mb-5 leading-relaxed">{plan.description}</p>
 
-                    <GoldBorderButton href="/cadastro" className="w-full mb-5">
+                    <GoldBorderButton href={`/cadastro?plano=${plan.key}`} className="w-full mb-5">
                       {plan.buttonText}
                     </GoldBorderButton>
 
