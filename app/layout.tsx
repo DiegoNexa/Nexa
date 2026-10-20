@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans, JetBrains_Mono, PT_Serif } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans, JetBrains_Mono, Badeen_Display } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -20,12 +20,12 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["500"],
 });
 
-// Fonte do wordmark "NEXA" na landing — serifada, estilo editorial.
+// Fonte do wordmark "NEXA" na landing — display, estilo logo.
 // Usada só ali (via a variável abaixo); o resto do app não muda.
-const wordmarkFont = PT_Serif({
+const wordmarkFont = Badeen_Display({
   variable: "--font-wordmark",
   subsets: ["latin"],
-  weight: ["700"],
+  weight: ["400"],
 });
 
 const SITE_URL = "https://nexabase.com.br";

@@ -238,7 +238,7 @@ export default function Home() {
       {/* ── HERO ───────────────────────────────────── */}
       <section id="home" className="relative">
         <LampContainer className="rounded-none min-h-[100dvh]" logoSrc="/logo.png">
-          <div className="hero-enter mb-5" style={{ animationDelay: "0.3s" }}>
+          <div className="hero-enter mb-5" style={{ animationDelay: "0.3s", marginTop: "2cm" }}>
             <h1
               className="font-black text-on-surface neon-text animate-floating select-none text-center"
               style={{
