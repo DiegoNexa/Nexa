@@ -238,14 +238,14 @@ export default function Home() {
       {/* ── HERO ───────────────────────────────────── */}
       <section id="home" className="relative">
         <LampContainer className="rounded-none min-h-[100dvh]" logoSrc="/logo.png">
-          <div className="hero-enter mb-5" style={{ animationDelay: "0.3s", marginTop: "1cm" }}>
+          <div className="hero-enter mb-5" style={{ animationDelay: "0.3s" }}>
             <h1
               className="font-black text-on-surface neon-text animate-floating select-none text-center"
               style={{
                 fontSize: "clamp(5.5rem, 18vw, 11rem)",
                 lineHeight: 1,
-                letterSpacing: "0.01em",
-                fontFamily: "var(--font-wordmark), 'Baloo 2', system-ui, sans-serif",
+                letterSpacing: "-0.03em",
+                fontFamily: "var(--font-wordmark), 'Plus Jakarta Sans', sans-serif",
               }}
             >
               NEXA
