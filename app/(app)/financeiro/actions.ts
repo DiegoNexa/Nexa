@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { planoPermiteDespesas, type PlanoSalao } from "@/lib/planos";
 
 const CATEGORIAS = ["aluguel", "produtos", "contas", "equipamentos", "marketing", "impostos", "outros"] as const;
 
@@ -53,11 +54,16 @@ export async function criarDespesa(
 
   const { data: u } = await supabase
     .from("usuarios")
-    .select("salao_id")
+    .select("salao_id, saloes(plano)")
     .eq("id", user.id)
-    .maybeSingle<{ salao_id: string }>();
+    .maybeSingle<{ salao_id: string; saloes: { plano: PlanoSalao } | null }>();
 
   if (!u) return { ok: false, message: "Sua conta não está vinculada a um salão." };
+
+  // Despesas são Premium — barra mesmo que a chamada venha direto
+  if (!planoPermiteDespesas(u.saloes?.plano ?? "trial")) {
+    return { ok: false, message: "Controle de despesas faz parte do plano Premium." };
+  }
 
   // ── Despesa única ────────────────────────────────────────
   if (parsed.data.repeticao === "nao") {

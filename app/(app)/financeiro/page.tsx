@@ -7,12 +7,17 @@ import { BRL, parseMesParam } from "@/lib/folha-pagamento";
 import { carregarFinanceiro, carregarRecorrentes, CATEGORIA_LABEL } from "@/lib/financeiro";
 import { exigirRota } from "@/lib/plano-atual";
 import { BloqueioUpgrade } from "@/components/app/bloqueio-upgrade";
+import { planoPermiteDespesas, PLANOS } from "@/lib/planos";
 
 type Props = { searchParams: Promise<{ mes?: string }> };
 
 export default async function FinanceiroPage({ searchParams }: Props) {
   const _g = await exigirRota("/financeiro");
   if (!_g.permitido) return <BloqueioUpgrade recurso="Gestão financeira" exige={_g.exige} podeAssinar={true} />;
+
+  // Despesas são Premium. O Profissional vê faturamento, folha e lucro,
+  // mas não gerencia despesas.
+  const podeDespesas = planoPermiteDespesas(_g.plano);
 
   const { mes } = await searchParams;
   const periodo = parseMesParam(mes);
@@ -107,8 +112,31 @@ export default async function FinanceiroPage({ searchParams }: Props) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-6">
-        {/* Registrar despesa */}
+        {/* Registrar despesa — Premium. Fora dele, um convite ao upgrade. */}
         <section className="glass-card rounded-2xl p-5 h-fit">
+          {!podeDespesas ? (
+            <div className="text-center py-4">
+              <span className="material-symbols-outlined text-primary mb-2 inline-block" style={{ fontSize: "28px" }}>
+                lock
+              </span>
+              <h2 className="text-sm font-semibold text-on-surface mb-1">
+                Despesas fazem parte do {PLANOS.premium.nome}
+              </h2>
+              <p className="text-xs text-on-surface-variant mb-4">
+                Registre despesas e despesas fixas recorrentes, e acompanhe o lucro
+                já com os custos descontados.
+              </p>
+              <a
+                href="/configuracoes"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all-custom"
+                style={{ background: "linear-gradient(135deg,#E8D080,#C89933)", color: "#1D1A05" }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>arrow_upward</span>
+                Fazer upgrade para o {PLANOS.premium.nome}
+              </a>
+            </div>
+          ) : (
+          <>
           <h2 className="text-sm font-semibold text-on-surface mb-3">Registrar despesa</h2>
           <DespesaForm />
 
@@ -135,6 +163,8 @@ export default async function FinanceiroPage({ searchParams }: Props) {
                 ))}
               </div>
             </div>
+          )}
+          </>
           )}
         </section>
 

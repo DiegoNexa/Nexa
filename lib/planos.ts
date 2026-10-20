@@ -41,6 +41,7 @@ export const PLANOS: Record<PlanoKey, Plano> = {
       "Agenda completa",
       "Link público de agendamento",
       "Cadastro de clientes",
+      "Controle de estoque",
       "Lembrete por e-mail",
     ],
   },
@@ -56,7 +57,7 @@ export const PLANOS: Record<PlanoKey, Plano> = {
       "Tudo do plano Solo",
       "Equipe com comissões",
       "Folha de pagamento em PDF",
-      "Controle de estoque",
+      "Faturamento e lucro",
       "Ranking e carga horária",
     ],
   },
@@ -71,7 +72,7 @@ export const PLANOS: Record<PlanoKey, Plano> = {
     beneficios: [
       "Tudo do plano Profissional",
       "Profissionais ilimitados",
-      "Gestão financeira completa",
+      "Controle de despesas",
       "Despesas fixas recorrentes",
       "Suporte prioritário",
     ],
@@ -103,15 +104,24 @@ export const PLANO_MINIMO_ROTA: Record<string, PlanoKey> = {
   "/profissionais":   "solo",   // liberada, mas com limite de equipe (ver maxProfissionais)
   "/configuracoes":   "solo",
 
-  // Profissional em diante (equipe, relatórios, estoque):
+  "/estoque":         "solo",   // estoque entra já no Solo
+
+  // Profissional em diante (equipe, relatórios, financeiro):
   "/carga-horaria":   "profissional",
   "/ranking":         "profissional",
   "/folha-pagamento": "profissional",
-  "/estoque":         "profissional",
-
-  // Premium (gestão financeira completa + despesas recorrentes):
-  "/financeiro":      "premium",
+  "/financeiro":      "profissional",   // vê faturamento e lucro…
 };
+
+/**
+ * Despesas (lançar e as recorrentes) são exclusivas do Premium. O
+ * Profissional abre o Financeiro e vê faturamento, folha e lucro, mas
+ * não gerencia despesas. Mantido separado do mapa de rotas porque é
+ * um gating DENTRO de uma página, não da página inteira.
+ */
+export function planoPermiteDespesas(plano: PlanoSalao): boolean {
+  return planoEfetivo(plano) === "premium";
+}
 
 /**
  * Plano efetivo para fins de gating. Durante o trial, o salão guarda

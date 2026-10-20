@@ -244,8 +244,8 @@ export default function Home() {
               style={{
                 fontSize: "clamp(5.5rem, 18vw, 11rem)",
                 lineHeight: 1,
-                letterSpacing: "-0.03em",
-                fontFamily: "var(--font-plus-jakarta), 'Plus Jakarta Sans', sans-serif",
+                letterSpacing: "0.01em",
+                fontFamily: "var(--font-wordmark), 'Baloo 2', system-ui, sans-serif",
               }}
             >
               NEXA
