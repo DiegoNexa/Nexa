@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans, JetBrains_Mono, Baloo_2 } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans, JetBrains_Mono, PT_Serif } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -20,12 +20,12 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["500"],
 });
 
-// Fonte do wordmark "NEXA" na landing — pesada e arredondada, estilo
-// logo. Usada só ali (via a variável abaixo); o resto do app não muda.
-const baloo = Baloo_2({
+// Fonte do wordmark "NEXA" na landing — serifada, estilo editorial.
+// Usada só ali (via a variável abaixo); o resto do app não muda.
+const wordmarkFont = PT_Serif({
   variable: "--font-wordmark",
   subsets: ["latin"],
-  weight: ["800"],
+  weight: ["700"],
 });
 
 const SITE_URL = "https://nexabase.com.br";
@@ -95,7 +95,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`dark ${inter.variable} ${plusJakarta.variable} ${jetbrainsMono.variable} ${baloo.variable}`}
+      className={`dark ${inter.variable} ${plusJakarta.variable} ${jetbrainsMono.variable} ${wordmarkFont.variable}`}
     >
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
