@@ -300,8 +300,50 @@ const flag = (nome, padrao) => {
   return achado ? achado.slice(nome.length + 3) : padrao;
 };
 
+// ── diagnostico ────────────────────────────────────────────────
+/**
+ * Por que um pagamento não atualizou o banco. Lê os eventos recentes
+ * (pending_webhooks > 0 = a Stripe não conseguiu entregar / a produção
+ * recusou) e lista os endpoints de webhook da conta. Roda com a chave
+ * do modo em questão (real ou teste).
+ */
+async function diagnostico() {
+  const chave = process.env.STRIPE_SECRET_KEY || arquivoEnv().STRIPE_SECRET_KEY;
+  if (!chave) { console.error("STRIPE_SECRET_KEY ausente"); process.exitCode = 1; return; }
+  const real   = chave.includes("_live_");
+  const stripe = new Stripe(chave);
+
+  console.log("modo:", real ? "REAL" : "TESTE");
+
+  secao("Últimos eventos (pending_webhooks > 0 = entrega falhando)");
+  const ev = await stripe.events.list({ limit: 8 });
+  for (const e of ev.data) {
+    const marca = e.pending_webhooks > 0 ? "  <<< NÃO ENTREGUE" : "";
+    console.log(`  ${new Date(e.created * 1000).toISOString().slice(5, 19)}  ${e.type.padEnd(32)} pending=${e.pending_webhooks}${marca}`);
+  }
+
+  secao("Endpoints de webhook nesta conta/modo");
+  const eps = await stripe.webhookEndpoints.list({ limit: 20 });
+  if (!eps.data.length) falha("NENHUM endpoint cadastrado neste modo — por isso nada é entregue");
+  for (const w of eps.data) {
+    console.log(`  ${w.id}  [${w.status}]  api=${w.api_version || "conta"}`);
+    console.log(`    ${w.url}`);
+    const nossos = w.url.includes("/api/webhooks/stripe");
+    if (nossos) ok("este é o endpoint da Nexa");
+  }
+
+  secao("Conclusão");
+  console.log("  Se há evento com pending>0 E existe endpoint da Nexa [enabled],");
+  console.log("  a produção está RECUSANDO (401) — o STRIPE_WEBHOOK_SECRET da Vercel");
+  console.log("  não é o 'Signing secret' DESTE endpoint. Copie-o e atualize na Vercel.");
+  console.log("");
+  console.log("  Se NÃO há endpoint neste modo, crie um: node scripts/stripe-conta.mjs criar-webhook");
+}
+
 if (cmd === "verificar") {
   await verificar({ semProducao: flags.includes("--sem-producao") });
+} else if (cmd === "diagnostico") {
+  await diagnostico();
 } else if (cmd === "criar-webhook") {
   await criarWebhook({ gravarEnv: flags.includes("--gravar-env") });
 } else if (cmd === "checkout-teste") {
