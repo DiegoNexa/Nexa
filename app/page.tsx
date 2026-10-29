@@ -105,7 +105,7 @@ const personas = [
 const steps = [
   { n: "01", title: "Faça o Cadastro",       desc: "Crie sua conta com os dados básicos do seu estabelecimento. Leva menos de 2 minutos." },
   { n: "02", title: "Configure seu Salão",   desc: "Informe os serviços, profissionais e jornada de trabalho. O passo a passo guia você." },
-  { n: "03", title: "Teste por 30 dias",     desc: "Usufrua de todas as funcionalidades gratuitamente. Sem cartão de crédito." },
+  { n: "03", title: "Teste por 30 dias",     desc: "Usufrua de todas as funcionalidades. R$ 0 hoje — a cobrança começa só após o teste, e você cancela quando quiser." },
 ];
 
 const faqs = [
@@ -115,7 +115,7 @@ const faqs = [
 ];
 
 const highlights = [
-  { icon: "verified_user", label: "30 dias grátis",   sub: "Sem cartão de crédito"   },
+  { icon: "verified_user", label: "30 dias grátis",   sub: "Cancele quando quiser"   },
   { icon: "link",          label: "Link público",     sub: "Cliente agenda sozinho"  },
   { icon: "headset_mic",   label: "Suporte incluso",  sub: "Em todos os planos"      },
   { icon: "bar_chart",     label: "Relatórios reais", sub: "Em tempo real"           },
@@ -734,7 +734,7 @@ export default function Home() {
           </div>
 
           <p className="text-center text-xs mt-8 text-outline">
-            Todos os planos incluem 30 dias de teste grátis · Sem cartão de crédito
+            Todos os planos incluem 30 dias de teste grátis · R$ 0 hoje · Cancele quando quiser
           </p>
         </div>
       </section>
@@ -820,7 +820,7 @@ export default function Home() {
                 Transforme a gestão do seu salão hoje.
               </h2>
               <p className="text-base text-on-surface-variant max-w-md mx-auto mb-8">
-                Sem burocracia, sem cartão de crédito. Comece em menos de 2 minutos.
+                Sem burocracia. R$ 0 hoje, cobrança só após o teste. Comece em menos de 2 minutos.
               </p>
               <GoldBorderButton href="/cadastro" className="px-8 py-3.5">
                 Criar conta grátis

@@ -340,10 +340,55 @@ async function diagnostico() {
   console.log("  Se NÃO há endpoint neste modo, crie um: node scripts/stripe-conta.mjs criar-webhook");
 }
 
+// ── portal-teste ───────────────────────────────────────────────
+/**
+ * Reproduz lib/stripe.ts::criarPortalCliente para uma assinatura real
+ * e imprime o ERRO COMPLETO da Stripe (type/code/message). A action do
+ * app esconde o motivo (redireciona pra ?portal=erro genérico), então
+ * este comando é a forma de ver o que a Stripe está recusando.
+ *
+ * A URL do portal gerada NÃO é segredo (é de sessão, expira sozinha).
+ */
+async function portalTeste({ assinatura }) {
+  const chave = process.env.STRIPE_SECRET_KEY || arquivoEnv().STRIPE_SECRET_KEY;
+  if (!chave) { console.error("STRIPE_SECRET_KEY ausente"); process.exitCode = 1; return; }
+  if (!assinatura) { console.error("informe a assinatura: --assinatura=sub_..."); process.exitCode = 1; return; }
+
+  const real   = chave.includes("_live_");
+  const stripe = new Stripe(chave);
+  console.log("modo:", real ? "REAL" : "TESTE");
+  console.log("assinatura:", assinatura);
+
+  try {
+    const assin   = await stripe.subscriptions.retrieve(assinatura);
+    const cliente = typeof assin.customer === "string" ? assin.customer : assin.customer.id;
+    console.log("cliente:", cliente, " status assinatura:", assin.status);
+
+    const sessao = await stripe.billingPortal.sessions.create({
+      customer:   cliente,
+      return_url: "https://nexabase.com.br/configuracoes",
+    });
+    secao("OK — portal criado");
+    console.log("Abra:", sessao.url);
+  } catch (err) {
+    secao("ERRO da Stripe (este é o motivo real do ?portal=erro)");
+    console.log("  type....:", err?.type || err?.name);
+    console.log("  code....:", err?.code || err?.statusCode || "-");
+    console.log("  message.:", err?.message || String(err));
+    if (err?.message?.includes("configuration")) {
+      console.log("\n  → Portal do cliente NÃO ativado no modo real.");
+      console.log("    Settings → Billing → Customer portal → Salvar alterações (modo real).");
+    }
+    process.exitCode = 1;
+  }
+}
+
 if (cmd === "verificar") {
   await verificar({ semProducao: flags.includes("--sem-producao") });
 } else if (cmd === "diagnostico") {
   await diagnostico();
+} else if (cmd === "portal-teste") {
+  await portalTeste({ assinatura: flag("assinatura", "sub_1UVb61HQHgaJcwyzcDrX5Etc") });
 } else if (cmd === "criar-webhook") {
   await criarWebhook({ gravarEnv: flags.includes("--gravar-env") });
 } else if (cmd === "checkout-teste") {
@@ -357,5 +402,6 @@ if (cmd === "verificar") {
   console.log("uso: node scripts/stripe-conta.mjs verificar [--sem-producao]");
   console.log("     node scripts/stripe-conta.mjs criar-webhook [--gravar-env]");
   console.log("     node scripts/stripe-conta.mjs checkout-teste --salao=<uuid> [--centavos=100] [--plano=solo] [--periodo=mensal]");
+  console.log("     node scripts/stripe-conta.mjs portal-teste [--assinatura=sub_...]");
   process.exitCode = 1;
 }

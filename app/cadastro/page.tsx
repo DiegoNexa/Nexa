@@ -79,7 +79,7 @@ function CadastroForm() {
               Cadastre seu salão
             </h1>
             <p className="text-base text-on-surface-variant">
-              30 dias grátis · Sem cartão de crédito · Setup em 2 minutos
+              30 dias grátis · R$ 0 hoje · Cancele quando quiser
             </p>
           </motion.div>
 
@@ -219,18 +219,25 @@ function CadastroForm() {
             </div>
 
             {/* Plano para testar — libera só os recursos do plano
-                escolhido durante os 30 dias grátis. */}
+                escolhido durante os 30 dias grátis. O cartão é
+                cadastrado no passo seguinte (Stripe); R$ 0 hoje. */}
             <div>
-              <label className="block text-sm font-medium text-on-surface mb-1.5">
-                Plano para testar grátis por 30 dias
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="flex items-baseline justify-between mb-2">
+                <label className="block text-sm font-medium text-on-surface">
+                  Escolha seu plano
+                </label>
+                <span className="text-[11px] font-semibold text-primary">
+                  30 dias grátis · R$ 0 hoje
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {PLANOS_LISTA.map(p => (
                   <label
                     key={p.key}
-                    className="relative flex flex-col rounded-xl p-3 cursor-pointer transition-all-custom has-[:checked]:border-primary"
+                    className="group relative flex flex-col rounded-2xl p-4 cursor-pointer transition-all-custom overflow-hidden has-[:checked]:border-primary has-[:checked]:bg-[rgba(200,153,51,0.08)] has-[:checked]:shadow-[0_0_0_1px_var(--color-primary),0_8px_30px_-12px_rgba(200,153,51,0.6)]"
                     style={{
-                      background: "rgba(255,255,255,0.04)",
+                      background: "rgba(255,255,255,0.03)",
                       border: "1px solid rgba(255,255,255,0.1)",
                     }}
                   >
@@ -241,18 +248,65 @@ function CadastroForm() {
                       defaultChecked={p.key === planoInicial}
                       className="peer sr-only"
                     />
-                    <span className="absolute top-2 right-2 opacity-0 peer-checked:opacity-100 text-primary material-symbols-outlined" style={{ fontSize: "16px" }}>
+
+                    {p.destaque && (
+                      <span
+                        className="absolute top-0 right-0 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-bl-lg"
+                        style={{ background: "linear-gradient(135deg,#E8D080,#C89933)", color: "#1D1A05" }}
+                      >
+                        Mais popular
+                      </span>
+                    )}
+
+                    <span
+                      className="absolute top-3 right-3 opacity-0 peer-checked:opacity-100 transition-opacity text-primary material-symbols-outlined"
+                      style={{ fontSize: "18px" }}
+                    >
                       check_circle
                     </span>
+
                     <span className="text-sm font-bold text-on-surface">{p.nome}</span>
-                    <span className="text-xs text-on-surface-variant">R$ {p.precoMensal}/mês</span>
-                    <span className="text-[11px] text-on-surface-variant mt-1">{p.profissionais}</span>
+
+                    <span className="mt-1.5 flex items-baseline gap-1">
+                      <span className="text-2xl font-extrabold text-on-surface">R$ {p.precoMensal}</span>
+                      <span className="text-xs text-on-surface-variant">/mês</span>
+                    </span>
+                    <span className="text-[10px] text-outline">cobrado só após o teste</span>
+
+                    <span className="text-[11px] text-on-surface-variant mt-2 mb-2">{p.profissionais}</span>
+
+                    <ul className="space-y-1 mt-auto">
+                      {p.beneficios.slice(0, 3).map(b => (
+                        <li key={b} className="flex items-start gap-1 text-[11px] text-on-surface-variant">
+                          <span
+                            className="material-symbols-outlined flex-shrink-0 text-primary"
+                            style={{ fontSize: "13px", lineHeight: "15px" }}
+                          >
+                            check
+                          </span>
+                          <span>{b}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </label>
                 ))}
               </div>
-              <p className="text-xs text-on-surface-variant mt-1.5">
-                Sem cobrança agora. Você só paga se continuar depois do teste.
-              </p>
+
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-[11px] text-on-surface-variant">
+                <span className="inline-flex items-center gap-1">
+                  <span className="material-symbols-outlined text-primary" style={{ fontSize: "14px" }}>lock</span>
+                  Cartão seguro via Stripe
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="material-symbols-outlined text-primary" style={{ fontSize: "14px" }}>event_available</span>
+                  Cobrança só no dia 31
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="material-symbols-outlined text-primary" style={{ fontSize: "14px" }}>event_repeat</span>
+                  Cancele quando quiser
+                </span>
+              </div>
+
               {state.fieldErrors?.plano && (
                 <p className="text-xs mt-1.5" style={{ color: "var(--color-error)" }}>
                   {state.fieldErrors.plano}
@@ -275,7 +329,7 @@ function CadastroForm() {
             )}
 
             <HoverButton type="submit" disabled={isPending} className="w-full">
-              {isPending ? "Criando sua conta..." : "Criar minha conta grátis"}
+              {isPending ? "Abrindo pagamento seguro..." : "Começar teste grátis de 30 dias"}
             </HoverButton>
 
             <p className="text-center text-xs text-outline">

@@ -204,15 +204,25 @@ export type EstadoAssinatura = {
   assinatura_status:        AssinaturaStatus;
   trial_termina_em:         string;
   assinatura_atualizada_em: string | null;
+  // Opcional: só o guarda de acesso (acessoBloqueado) lê. undefined é
+  // tratado como "sem cartão" — direção segura (bloqueia em vez de
+  // liberar de graça). Quem checa acesso (layout, /assinatura) informa.
+  assinatura_id?:           string | null;
 };
 
 /**
  * Regra única de bloqueio do app — usada pelo layout autenticado.
  *
  *   ativa         → nunca bloqueia
- *   trial         → bloqueia depois que o teste grátis vence
+ *   trial         → exige cartão cadastrado; depois, bloqueia quando o
+ *                   teste grátis vence
  *   inadimplente  → bloqueia após o período de graça
  *   cancelada     → bloqueia
+ *
+ * Cartão antes do teste: desde que o cadastro passou a capturar o cartão
+ * logo de início, um salão em trial SEM assinatura no Stripe
+ * (assinatura_id vazio) ainda não começou o teste — fica bloqueado até
+ * cadastrar o cartão (o checkout cria a assinatura com trial de 30 dias).
  */
 export function acessoBloqueado(s: EstadoAssinatura): boolean {
   const agora = Date.now();
@@ -222,6 +232,7 @@ export function acessoBloqueado(s: EstadoAssinatura): boolean {
       return false;
 
     case "trial":
+      if (!s.assinatura_id) return true;   // sem cartão → teste não iniciado
       return new Date(s.trial_termina_em).getTime() < agora;
 
     case "inadimplente": {
@@ -240,7 +251,10 @@ export function acessoBloqueado(s: EstadoAssinatura): boolean {
 /** Motivo do bloqueio, para a mensagem exibida ao usuário */
 export function motivoBloqueio(s: EstadoAssinatura): string {
   switch (s.assinatura_status) {
-    case "trial":        return `Seu teste grátis de ${TRIAL_DIAS} dias chegou ao fim.`;
+    case "trial":
+      return s.assinatura_id
+        ? `Seu teste grátis de ${TRIAL_DIAS} dias chegou ao fim.`
+        : `Cadastre um cartão para começar seu teste grátis de ${TRIAL_DIAS} dias — você só é cobrado depois.`;
     case "inadimplente": return "Não conseguimos processar o pagamento da sua assinatura.";
     case "cancelada":    return "Sua assinatura foi cancelada.";
     default:             return "Sua assinatura não está ativa.";

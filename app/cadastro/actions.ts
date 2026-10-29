@@ -2,9 +2,12 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { criarCheckoutAssinatura } from "@/lib/stripe";
+import { TRIAL_DIAS } from "@/lib/planos";
 import { mapSignupError } from "@/lib/auth-errors";
 
 // Apenas dígitos. 10 = fixo (DDD + 8), 11 = celular (DDD + 9)
@@ -114,7 +117,7 @@ export async function signupAction(
   // Único call: o signUp dispara o trigger em auth.users que
   // cria o salão e o vínculo dentro da mesma transação.
   // Atômico: se o trigger falha, o signUp também faz rollback.
-  const { error: signUpError } = await supabase.auth.signUp({
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email:    data.email,
     password: data.senha,
     options: {
@@ -149,5 +152,47 @@ export async function signupAction(
     maxAge:   60 * 60,
   });
 
-  redirect("/cadastro/sucesso");
+  // Cartão antes do teste: manda direto para o checkout do Stripe já
+  // com 30 dias de trial (R$ 0 hoje; cobra sozinho no fim). O trigger
+  // criou o salão na mesma transação do signUp, então o salao_id já
+  // existe — buscamos via admin (sem sessão ainda; e-mail por confirmar).
+  //
+  // Se qualquer passo falhar (Stripe fora do ar, etc.), cai no fallback
+  // /cadastro/sucesso: a conta existe e o cartão é cobrado no 1º login,
+  // quando o guarda de acesso leva o dono para /assinatura.
+  let destino = "/cadastro/sucesso";
+
+  const h    = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  const baseUrl = host ? `${host.startsWith("localhost") ? "http" : "https"}://${host}` : "";
+  const novoUserId = signUpData.user?.id;
+
+  if (novoUserId && baseUrl) {
+    try {
+      const admin = createAdminClient();
+      const { data: urow } = await admin
+        .from("usuarios")
+        .select("salao_id")
+        .eq("id", novoUserId)
+        .maybeSingle<{ salao_id: string }>();
+
+      if (urow?.salao_id) {
+        const checkout = await criarCheckoutAssinatura({
+          plano:      data.plano,
+          periodo:    "mensal",
+          salaoId:    urow.salao_id,
+          baseUrl,
+          email:      data.email,
+          trialDias:  TRIAL_DIAS,
+          successUrl: `${baseUrl}/cadastro/sucesso?pago=1`,
+          cancelUrl:  `${baseUrl}/cadastro/sucesso?cartao=pendente`,
+        });
+        if (checkout.ok) destino = checkout.url;
+      }
+    } catch {
+      // mantém o fallback /cadastro/sucesso
+    }
+  }
+
+  redirect(destino);
 }

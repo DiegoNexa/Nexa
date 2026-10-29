@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     template: "%s · Nexa",
   },
   description:
-    "Agenda online com link público, gestão de equipe, comissões automáticas, folha de pagamento em PDF e controle de estoque. 30 dias grátis, sem cartão de crédito.",
+    "Agenda online com link público, gestão de equipe, comissões automáticas, folha de pagamento em PDF e controle de estoque. 30 dias grátis, cancele quando quiser.",
   keywords: [
     "nexa",
     "salão",

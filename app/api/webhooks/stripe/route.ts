@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripeClient } from "@/lib/stripe";
-import { isPlanoKey } from "@/lib/planos";
+import { isPlanoKey, type AssinaturaStatus } from "@/lib/planos";
 import { extrairVinculo } from "@/lib/stripe-evento";
 
 export const runtime = "nodejs";
@@ -63,13 +63,35 @@ export async function POST(request: Request) {
     );
   }
 
-  const novoStatus = EVENTOS[evento.type];
+  let novoStatus: AssinaturaStatus | undefined = EVENTOS[evento.type];
   // Evento que não nos interessa: 200 para a Stripe parar de reenviar
   if (!novoStatus) {
     return NextResponse.json({ ok: true, ignorado: evento.type });
   }
 
+  // Primeira assinatura criada com teste grátis: a sessão carrega
+  // `trial_dias` na metadata (ver lib/stripe.ts). Nesse caso o salão
+  // entra como 'trial' — não 'ativa' — e fixamos o fim do teste
+  // alinhado ao trial do Stripe (cobrança automática no dia seguinte).
+  let trialFim: string | null = null;
+  if (evento.type === "checkout.session.completed") {
+    const sessao = evento.data.object as Stripe.Checkout.Session;
+    const dias   = Number(sessao.metadata?.trial_dias);
+    if (Number.isFinite(dias) && dias > 0) {
+      novoStatus = "trial";
+      trialFim   = new Date(Date.now() + dias * 86_400_000).toISOString();
+    }
+  }
+
   const { salaoId, plano: planoBruto, assinaturaId, centavos } = extrairVinculo(evento);
+
+  // Fatura de valor zero (ex.: a fatura inicial de um trial, emitida no
+  // começo do teste) não é pagamento real e NÃO pode promover o salão de
+  // 'trial' para 'ativa' — isso apagaria o teste grátis. A cobrança de
+  // verdade vem ao fim do trial, com valor > 0.
+  if (evento.type === "invoice.paid" && (centavos == null || centavos === 0)) {
+    return NextResponse.json({ ok: true, invoice_zero: evento.id });
+  }
 
   if (!salaoId) {
     // 200 de propósito: sem salão não há o que fazer, e devolver erro
@@ -112,6 +134,9 @@ export async function POST(request: Request) {
     p_status:        novoStatus,
     p_plano:         plano,
     p_assinatura_id: assinaturaId,   // null mantém o atual (coalesce na função)
+    // Só na primeira assinatura com trial; nos demais eventos fica de
+    // fora e a função mantém o fim do teste atual (default null).
+    ...(trialFim ? { p_trial_termina_em: trialFim } : {}),
   });
 
   if (updErr) {

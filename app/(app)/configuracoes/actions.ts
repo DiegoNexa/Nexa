@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { criarCheckoutAssinatura, criarPortalCliente } from "@/lib/stripe";
-import { isPlanoKey, isPeriodicidade } from "@/lib/planos";
+import { isPlanoKey, isPeriodicidade, TRIAL_DIAS } from "@/lib/planos";
 
 const schema = z.object({
   nome:              z.string().trim().min(2, "Nome muito curto").max(80, "Nome muito longo"),
@@ -114,9 +114,12 @@ export async function iniciarAssinatura(
 
   const { data: u } = await supabase
     .from("usuarios")
-    .select("salao_id, role, nome, email")
+    .select("salao_id, role, nome, email, saloes(assinatura_status, assinatura_id)")
     .eq("id", user.id)
-    .maybeSingle<{ salao_id: string; role: string; nome: string; email: string }>();
+    .maybeSingle<{
+      salao_id: string; role: string; nome: string; email: string;
+      saloes: { assinatura_status: string; assinatura_id: string | null } | null;
+    }>();
 
   if (!u) return { ok: false, message: "Sua conta não está vinculada a um salão." };
   if (u.role !== "dono") {
@@ -128,12 +131,18 @@ export async function iniciarAssinatura(
   if (!host) return { ok: false, message: "Não foi possível identificar o endereço do app." };
   const baseUrl = `${host.startsWith("localhost") ? "http" : "https"}://${host}`;
 
+  // Trial só na PRIMEIRA assinatura: salão ainda em trial e sem cartão
+  // no Stripe. Quem reassina (trial vencido, cancelado, inadimplente)
+  // ou já teve assinatura entra sem novo teste — evita trial repetido.
+  const primeiraVez = u.saloes?.assinatura_status === "trial" && !u.saloes?.assinatura_id;
+
   const resultado = await criarCheckoutAssinatura({
     plano,
     periodo,
-    salaoId: u.salao_id,
+    salaoId:   u.salao_id,
     baseUrl,
-    email:   u.email,   // pré-preenche o checkout da Stripe
+    email:     u.email,   // pré-preenche o checkout da Stripe
+    trialDias: primeiraVez ? TRIAL_DIAS : undefined,
   });
 
   if (!resultado.ok) {

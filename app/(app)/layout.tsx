@@ -32,11 +32,12 @@ export default async function AppLayout({
     assinatura_status:        AssinaturaStatus;
     trial_termina_em:         string;
     assinatura_atualizada_em: string | null;
+    assinatura_id:            string | null;
   };
 
   const { data: usuario } = await supabase
     .from("usuarios")
-    .select("nome, role, saloes(nome, plano, assinatura_status, trial_termina_em, assinatura_atualizada_em)")
+    .select("nome, role, saloes(nome, plano, assinatura_status, trial_termina_em, assinatura_atualizada_em, assinatura_id)")
     .eq("id", user.id)
     .single<{ nome: string; role: string; saloes: Salao | null }>();
 

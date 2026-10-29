@@ -49,6 +49,14 @@ type CriarCheckoutParams = {
   salaoId: string;   // vai na metadata — é o que amarra o webhook ao salão
   baseUrl: string;   // origem da aplicação, para as URLs de retorno
   email?:  string;   // pré-preenche o checkout, quando disponível
+  // Dias de teste grátis na PRIMEIRA assinatura (cartão exigido, mas
+  // R$ 0 hoje; a Stripe cobra sozinha ao fim do trial). Só o cadastro
+  // usa — re-assinatura (trial vencido/cancelado) vai sem trial.
+  trialDias?:  number;
+  // Sobrescrevem as URLs de retorno padrão (ex.: o cadastro volta para
+  // /cadastro/sucesso em vez de /configuracoes).
+  successUrl?: string;
+  cancelUrl?:  string;
 };
 
 /**
@@ -70,12 +78,27 @@ export async function criarCheckoutAssinatura(
       ? { interval: "year" }
       : { interval: "month", interval_count: info.meses };
 
+  const temTrial = typeof p.trialDias === "number" && p.trialDias > 0;
+
+  // Metadata da sessão: o webhook lê `trial_dias` no
+  // checkout.session.completed para gravar o salão como 'trial' (em vez
+  // de 'ativa') e calcular o fim do teste. A renovação não carrega isso.
+  const metaSessao: Record<string, string> = {
+    salao_id: p.salaoId,
+    plano:    p.plano,
+    periodo:  p.periodo,
+  };
+  if (temTrial) metaSessao.trial_dias = String(p.trialDias);
+
   try {
     const sessao = await stripe().checkout.sessions.create({
       mode:                 "subscription",
       payment_method_types: METODOS,
       locale:               "pt-BR",
       customer_email:       p.email,
+      // Mesmo no trial, exige o cartão na frente — é o ponto da mudança:
+      // cobrança automática ao fim do teste, sem pedir nova ação.
+      payment_method_collection: "always",
       line_items: [{
         quantity: 1,
         price_data: {
@@ -88,13 +111,14 @@ export async function criarCheckoutAssinatura(
           },
         },
       }],
-      success_url: `${p.baseUrl}/configuracoes?assinatura=ok`,
-      cancel_url:  `${p.baseUrl}/assinatura`,
+      success_url: p.successUrl ?? `${p.baseUrl}/configuracoes?assinatura=ok`,
+      cancel_url:  p.cancelUrl  ?? `${p.baseUrl}/assinatura`,
       // Duas vias para o webhook achar o salão: a sessão e a assinatura
       // criada a partir dela (a renovação só carrega a da assinatura).
       client_reference_id: p.salaoId,
-      metadata:            { salao_id: p.salaoId, plano: p.plano, periodo: p.periodo },
+      metadata:            metaSessao,
       subscription_data: {
+        ...(temTrial ? { trial_period_days: p.trialDias } : {}),
         metadata: { salao_id: p.salaoId, plano: p.plano, periodo: p.periodo },
       },
     });
